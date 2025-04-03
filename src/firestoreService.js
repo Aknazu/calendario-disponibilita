@@ -4,14 +4,20 @@ import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } 
 export const getEvents = async () => {
     const eventRef = collection(db, "events");
     const querySnapshot = await getDocs(eventRef);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        nickname: doc.data().nickname || "Anonimo" // 👈 Se manca il nickname, mostriamo "Anonimo"
+    }));
 };
 
-export const addEvent = async (userId, date, eventType) => {
+
+export const addEvent = async (userId, nickname, date, eventType) => {
     try {
         const eventRef = collection(db, "events");
         await addDoc(eventRef, {
             userId,
+            nickname,
             date,
             eventType,
         });
@@ -19,6 +25,7 @@ export const addEvent = async (userId, date, eventType) => {
         console.error("Errore nell'aggiunta dell'evento:", error);
     }
 };
+
 
 export const deleteEvent = async (eventId) => {
     try {

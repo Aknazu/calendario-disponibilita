@@ -21,7 +21,7 @@ const Calendar = ({ user }) => {
     const eventList = await getEvents();
     setEvents(eventList.map(event => ({
       id: event.id,
-      title: event.eventType,
+      title: `${event.eventType} - ${event.nickname || "Anonimo"}`, // Mostra il nickname accanto all'evento
       start: event.date,
       color: event.eventType === "Disponibile" ? "#1A73E8" : event.eventType === "Disponibilità Limitata" ? "#F4B400" : "#EA4335",
     })));
@@ -37,9 +37,7 @@ const Calendar = ({ user }) => {
   };
 
   const handleEventClick = (info) => {
-    // Quando si clicca su un evento, otteniamo l'evento cliccato
     const eventClicked = events.find(event => event.id === info.event.id);
-
     if (eventClicked) {
       setSelectedDate(eventClicked.start);
       setExistingEvent(eventClicked);
@@ -48,14 +46,16 @@ const Calendar = ({ user }) => {
   };
 
   const handleEventSelection = async (type) => {
+    const nickname = user.displayName || "Anonimo"; // 👈 Otteniamo il nickname dall'account Google
     if (existingEvent) {
       await updateEvent(existingEvent.id, type);
     } else {
-      await addEvent(user.uid, selectedDate, type);
+      await addEvent(user.uid, nickname, selectedDate, type); // 👈 Passiamo anche il nickname
     }
     fetchEvents();
     setOpen(false);
   };
+
 
   const handleDeleteEvent = async () => {
     if (existingEvent) {
@@ -72,7 +72,7 @@ const Calendar = ({ user }) => {
             initialView="dayGridMonth"
             events={events}
             dateClick={handleDateClick}
-            eventClick={handleEventClick} // 👈 Aggiunto per gestire il click sugli eventi
+            eventClick={handleEventClick}
             height="auto"
         />
         <Dialog open={open} onClose={() => setOpen(false)}>
