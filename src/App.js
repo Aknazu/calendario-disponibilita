@@ -4,6 +4,7 @@ import { CssBaseline, ThemeProvider, createTheme, Container, Typography, AppBar,
 import GoogleIcon from '@mui/icons-material/Google';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { addUserToFirestore, getUserNickname } from "./firestoreService";
 
 const theme = createTheme({
     palette: {
@@ -20,11 +21,19 @@ function App() {
     const [user, setUser] = useState(null);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [nickname, setNickname] = useState("");
     const [isRegistering, setIsRegistering] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            if (currentUser) {
+                const nickname = await getUserNickname(currentUser.uid);
+                setUser({ ...currentUser, nickname });
+            } else {
+                setUser(null);
+            }
+            setLoading(false);
         });
         return () => unsubscribe();
     }, []);
@@ -38,8 +47,16 @@ function App() {
     };
 
     const handleRegister = async () => {
+        if (!nickname.trim()) {
+            alert("Il nickname è obbligatorio.");
+            return;
+        }
+
         try {
-            await createUserWithEmailAndPassword(auth, email, password);
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            await addUserToFirestore(user.uid, nickname);
+            setUser({ ...user, nickname });
         } catch (error) {
             console.error("Errore nella registrazione:", error.message);
         }
@@ -48,7 +65,22 @@ function App() {
     const handleGoogleLogin = async () => {
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            let nickname = await getUserNickname(user.uid);
+
+            if (!nickname) {
+                nickname = prompt("Inserisci il tuo nickname:");
+                if (nickname) {
+                    await addUserToFirestore(user.uid, nickname);
+                } else {
+                    alert("Il nickname è obbligatorio.");
+                    await signOut(auth);
+                    return;
+                }
+            }
+
+            setUser({ ...user, nickname });
         } catch (error) {
             console.error("Errore nel login con Google:", error);
         }
@@ -56,7 +88,10 @@ function App() {
 
     const handleLogout = async () => {
         await signOut(auth);
+        setUser(null);
     };
+
+    if (loading) return <Typography>Caricamento...</Typography>;
 
     return (
         <ThemeProvider theme={theme}>
@@ -69,18 +104,16 @@ function App() {
                     {user ? (
                         <>
                             <Typography variant="body1" style={{ marginRight: "10px" }}>
-                                {user.email || user.displayName}
+                                {user.nickname}
                             </Typography>
                             <Button color="inherit" onClick={handleLogout}>
                                 Logout
                             </Button>
                         </>
                     ) : (
-                        <>
-                            <Button color="inherit" onClick={handleGoogleLogin} startIcon={<GoogleIcon />}>
-                                Accedi con Google
-                            </Button>
-                        </>
+                        <Button color="inherit" onClick={handleGoogleLogin} startIcon={<GoogleIcon />}>
+                            Accedi con Google
+                        </Button>
                     )}
                 </Toolbar>
             </AppBar>
@@ -107,6 +140,16 @@ function App() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                         />
+                        {isRegistering && (
+                            <TextField
+                                label="Nickname"
+                                variant="outlined"
+                                fullWidth
+                                margin="normal"
+                                value={nickname}
+                                onChange={(e) => setNickname(e.target.value)}
+                            />
+                        )}
                         {isRegistering ? (
                             <Button variant="contained" color="primary" fullWidth onClick={handleRegister}>
                                 Registrati
