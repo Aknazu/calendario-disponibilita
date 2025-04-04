@@ -102,3 +102,16 @@ export const updateEventsNickname = async (userId, newNickname) => {
         console.error("Errore nell'aggiornamento del nickname negli eventi:", error);
     }
 };
+
+// 🔹 Verifica se il nickname è unico
+export const isNicknameUnique = async (nickname) => {
+    try {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("nickname", "==", nickname));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.empty;
+    } catch (error) {
+        console.error("Errore nella verifica dell'unicità del nickname:", error);
+        throw error;
+    }
+};

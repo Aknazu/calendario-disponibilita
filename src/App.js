@@ -7,7 +7,7 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { addUserToFirestore, getUserNickname, updateUserNickname, updateEventsNickname } from "./firestoreService";
+import { addUserToFirestore, getUserNickname, updateUserNickname, updateEventsNickname, isNicknameUnique } from "./firestoreService";
 
 const d20Icon = process.env.PUBLIC_URL + '/d20.png';
 
@@ -118,6 +118,12 @@ function App() {
                 return;
             }
 
+            const isUnique = await isNicknameUnique(nickname);
+            if (!isUnique) {
+                setError("Il nickname è già in uso. Scegli un altro nickname.");
+                return;
+            }
+
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
@@ -164,6 +170,13 @@ function App() {
             setError("Il nickname è obbligatorio.");
             return;
         }
+
+        const isUnique = await isNicknameUnique(nickname);
+        if (!isUnique) {
+            setError("Il nickname è già in uso. Scegli un altro nickname.");
+            return;
+        }
+
         await updateUserNickname(user.uid, nickname);
         await updateEventsNickname(user.uid, nickname);
         setUser((prevUser) => ({ ...prevUser, nickname }));
