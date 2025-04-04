@@ -1,5 +1,5 @@
 import { db } from "./firebaseConfig";
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, writeBatch } from "firebase/firestore";
 
 // 🔹 Recupera gli eventi e include il nickname dell'utente
 export const getEvents = async () => {
@@ -46,12 +46,10 @@ export const deleteEvent = async (eventId, userId) => {
 
 export const updateEvent = async (eventId, eventType) => {
     try {
-        console.log("updateEvent - eventId:", eventId, "eventType:", eventType);
         const eventDoc = doc(db, "events", eventId);
         await updateDoc(eventDoc, {
             eventType
         });
-        console.log("Event updated successfully");
     } catch (error) {
         console.error("Errore nell'aggiornamento dell'evento:", error);
         throw error;
@@ -84,5 +82,23 @@ export const updateUserNickname = async (userId, newNickname) => {
         await updateDoc(doc(db, "users", userId), { nickname: newNickname });
     } catch (error) {
         console.error("Errore nell'aggiornamento del nickname:", error);
+    }
+};
+
+// 🔹 Aggiorna il nickname in tutti gli eventi dell'utente
+export const updateEventsNickname = async (userId, newNickname) => {
+    try {
+        const eventRef = collection(db, "events");
+        const q = query(eventRef, where("userId", "==", userId));
+        const querySnapshot = await getDocs(q);
+
+        const batch = writeBatch(db);
+        querySnapshot.forEach((doc) => {
+            batch.update(doc.ref, { nickname: newNickname });
+        });
+
+        await batch.commit();
+    } catch (error) {
+        console.error("Errore nell'aggiornamento del nickname negli eventi:", error);
     }
 };

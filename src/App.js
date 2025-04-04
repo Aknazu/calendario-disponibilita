@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
 import Calendar from "./components/Calendar";
-import { CssBaseline, ThemeProvider, createTheme, Container, Typography, AppBar, Toolbar, Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Box, Fab } from "@mui/material";
+import { CssBaseline, ThemeProvider, createTheme, Container, Typography, AppBar, Toolbar, Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Box, Fab, Menu, MenuItem } from "@mui/material";
 import GoogleIcon from '@mui/icons-material/Google';
 import LogoutIcon from '@mui/icons-material/Logout';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { addUserToFirestore, getUserNickname, updateUserNickname } from "./firestoreService";
+import { addUserToFirestore, getUserNickname, updateUserNickname, updateEventsNickname } from "./firestoreService";
 
 const d20Icon = process.env.PUBLIC_URL + '/d20.png';
 
@@ -71,6 +71,7 @@ function App() {
     const [error, setError] = useState(null);
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
+    const [anchorEl, setAnchorEl] = useState(null);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -164,8 +165,22 @@ function App() {
             return;
         }
         await updateUserNickname(user.uid, nickname);
+        await updateEventsNickname(user.uid, nickname);
         setUser((prevUser) => ({ ...prevUser, nickname }));
         setShowNicknameDialog(false);
+    };
+
+    const handleMenuOpen = (event) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleMenuClose = () => {
+        setAnchorEl(null);
+    };
+
+    const handleChangeNicknameClick = () => {
+        setShowNicknameDialog(true);
+        handleMenuClose();
     };
 
     return (
@@ -179,9 +194,16 @@ function App() {
                     </Typography>
                     {user ? (
                         <Box display="flex" alignItems="center">
-                            <Typography variant="body1" style={{ marginRight: "10px" }}>
+                            <Typography variant="body1" style={{ marginRight: "10px", cursor: "pointer" }} onClick={handleMenuOpen}>
                                 {user.nickname}
                             </Typography>
+                            <Menu
+                                anchorEl={anchorEl}
+                                open={Boolean(anchorEl)}
+                                onClose={handleMenuClose}
+                            >
+                                <MenuItem onClick={handleChangeNicknameClick}>Cambia nickname</MenuItem>
+                            </Menu>
                             <Button color="inherit" onClick={() => setShowLogoutDialog(true)} size="small" startIcon={<LogoutIcon />}>
                                 Logout
                             </Button>
@@ -212,54 +234,28 @@ function App() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                         />
-                        {isRegistering && (
-                            <TextField
-                                label="Nickname"
-                                variant="outlined"
-                                fullWidth
-                                margin="normal"
-                                value={nickname}
-                                onChange={(e) => setNickname(e.target.value)}
-                            />
-                        )}
+                        <Button color="primary" fullWidth onClick={handleLogin}>
+                            Login
+                        </Button>
+                        <Button color="secondary" fullWidth onClick={handleGoogleLogin} startIcon={<GoogleIcon />}>
+                            Login con Google
+                        </Button>
                         <Box display="flex" justifyContent="space-between" mt={2}>
-                            {isRegistering ? (
-                                <Button variant="contained" color="primary" fullWidth onClick={handleRegister}>
-                                    Registrati
-                                </Button>
-                            ) : (
-                                <Button variant="contained" color="primary" fullWidth onClick={handleLogin}>
-                                    Login
-                                </Button>
-                            )}
-                            <Button
-                                variant="outlined"
-                                color="default"
-                                fullWidth
-                                onClick={handleGoogleLogin}
-                                startIcon={<GoogleIcon />}
-                                style={{
-                                    backgroundColor: "white",
-                                    borderColor: "black",
-                                    color: "black",
-                                    textTransform: "none",
-                                    marginLeft: "10px"
-                                }}
-                            >
-                                Accedi tramite Google
+                            <Button color="primary" onClick={() => setIsRegistering(true)}>
+                                Registrati
+                            </Button>
+                            <Button color="default" onClick={() => setIsRegistering(false)}>
+                                Annulla
                             </Button>
                         </Box>
-                        <Button color="secondary" fullWidth onClick={() => setIsRegistering(!isRegistering)}>
-                            {isRegistering ? "Hai già un account? Accedi" : "Non hai un account? Registrati"}
-                        </Button>
                     </div>
                 )}
             </Container>
-            <Dialog open={showNicknameDialog} onClose={() => {}}>
-                <DialogTitle>Imposta il tuo Nickname</DialogTitle>
+            <Dialog open={showNicknameDialog} onClose={() => setShowNicknameDialog(false)}>
+                <DialogTitle>Cambia il tuo Nickname</DialogTitle>
                 <DialogContent>
                     <TextField
-                        label="Nickname"
+                        label="Nuovo Nickname"
                         variant="outlined"
                         fullWidth
                         margin="normal"
@@ -268,6 +264,7 @@ function App() {
                     />
                 </DialogContent>
                 <DialogActions>
+                    <Button onClick={() => setShowNicknameDialog(false)} color="default">Annulla</Button>
                     <Button onClick={handleNicknameUpdate} color="primary">
                         Salva
                     </Button>
