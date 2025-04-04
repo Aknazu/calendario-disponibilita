@@ -8,12 +8,22 @@ import { addUserToFirestore, getUserNickname, updateUserNickname } from "./fires
 
 const theme = createTheme({
     palette: {
-        mode: "dark",
+        mode: "light",
         primary: { main: "#1a73e8" },
         secondary: { main: "#fbbc04" },
     },
     typography: {
         fontFamily: "Roboto, Arial, sans-serif",
+    },
+    components: {
+        MuiButton: {
+            styleOverrides: {
+                root: {
+                    borderRadius: 8,
+                    textTransform: "none",
+                },
+            },
+        },
     },
 });
 
@@ -189,8 +199,6 @@ function App() {
                     </div>
                 )}
             </Container>
-
-            {/* Popup per modificare il nickname se è "Anonimo" */}
             <Dialog open={showNicknameDialog} onClose={() => {}}>
                 <DialogTitle>Imposta il tuo Nickname</DialogTitle>
                 <DialogContent>
@@ -209,8 +217,6 @@ function App() {
                     </Button>
                 </DialogActions>
             </Dialog>
-
-            {/* Popup di errore */}
             <Dialog open={!!error} onClose={() => setError(null)}>
                 <DialogTitle>Errore</DialogTitle>
                 <DialogContent>{error}</DialogContent>
