@@ -25,7 +25,7 @@ const Calendar = ({ user }) => {
         const eventList = await getEvents();
         setEvents(eventList.map(event => ({
             id: event.id,
-            title: `${event.nickname}: ${event.eventType}`,
+            title: `${event.nickname}: ${event.eventType === "Disponibilità Limitata" ? "Disp. limitata" : event.eventType}`,
             start: event.date,
             color: event.eventType === "Disponibile" ? "#1A73E8" : event.eventType === "Disponibilità Limitata" ? "#F4B400" : "#EA4335",
             userId: event.userId

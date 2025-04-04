@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Calendar from "./components/Calendar";
-import { CssBaseline, ThemeProvider, createTheme, Container, Typography, AppBar, Toolbar, Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
+import { CssBaseline, ThemeProvider, createTheme, Container, Typography, AppBar, Toolbar, Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Box } from "@mui/material";
 import GoogleIcon from '@mui/icons-material/Google';
+import LogoutIcon from '@mui/icons-material/Logout';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { addUserToFirestore, getUserNickname, updateUserNickname } from "./firestoreService";
@@ -35,6 +36,7 @@ function App() {
     const [isRegistering, setIsRegistering] = useState(false);
     const [showNicknameDialog, setShowNicknameDialog] = useState(false);
     const [error, setError] = useState(null); // Stato per il popup di errore
+    const [showLogoutDialog, setShowLogoutDialog] = useState(false); // Stato per il popup di conferma logout
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -115,6 +117,7 @@ function App() {
 
     const handleLogout = async () => {
         await signOut(auth);
+        setShowLogoutDialog(false);
     };
 
     const handleNicknameUpdate = async () => {
@@ -136,19 +139,15 @@ function App() {
                         Calendario Disponibilità
                     </Typography>
                     {user ? (
-                        <>
+                        <Box display="flex" alignItems="center">
                             <Typography variant="body1" style={{ marginRight: "10px" }}>
                                 {user.nickname}
                             </Typography>
-                            <Button color="inherit" onClick={handleLogout}>
+                            <Button color="inherit" onClick={() => setShowLogoutDialog(true)} size="small" startIcon={<LogoutIcon />}>
                                 Logout
                             </Button>
-                        </>
-                    ) : (
-                        <Button color="inherit" onClick={handleGoogleLogin} startIcon={<GoogleIcon />}>
-                            Accedi con Google
-                        </Button>
-                    )}
+                        </Box>
+                    ) : null}
                 </Toolbar>
             </AppBar>
             <Container maxWidth="lg" style={{ padding: "20px" }}>
@@ -184,15 +183,33 @@ function App() {
                                 onChange={(e) => setNickname(e.target.value)}
                             />
                         )}
-                        {isRegistering ? (
-                            <Button variant="contained" color="primary" fullWidth onClick={handleRegister}>
-                                Registrati
+                        <Box display="flex" justifyContent="space-between" mt={2}>
+                            {isRegistering ? (
+                                <Button variant="contained" color="primary" fullWidth onClick={handleRegister}>
+                                    Registrati
+                                </Button>
+                            ) : (
+                                <Button variant="contained" color="primary" fullWidth onClick={handleLogin}>
+                                    Login
+                                </Button>
+                            )}
+                            <Button
+                                variant="outlined"
+                                color="default"
+                                fullWidth
+                                onClick={handleGoogleLogin}
+                                startIcon={<GoogleIcon />}
+                                style={{
+                                    backgroundColor: "white",
+                                    borderColor: "black",
+                                    color: "black",
+                                    textTransform: "none",
+                                    marginLeft: "10px"
+                                }}
+                            >
+                                Accedi tramite Google
                             </Button>
-                        ) : (
-                            <Button variant="contained" color="primary" fullWidth onClick={handleLogin}>
-                                Login
-                            </Button>
-                        )}
+                        </Box>
                         <Button color="secondary" fullWidth onClick={() => setIsRegistering(!isRegistering)}>
                             {isRegistering ? "Hai già un account? Accedi" : "Non hai un account? Registrati"}
                         </Button>
@@ -222,6 +239,14 @@ function App() {
                 <DialogContent>{error}</DialogContent>
                 <DialogActions>
                     <Button onClick={() => setError(null)} color="primary">OK</Button>
+                </DialogActions>
+            </Dialog>
+            <Dialog open={showLogoutDialog} onClose={() => setShowLogoutDialog(false)}>
+                <DialogTitle>Conferma Logout</DialogTitle>
+                <DialogContent>Sei sicuro di voler effettuare il logout?</DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setShowLogoutDialog(false)} color="default">Annulla</Button>
+                    <Button onClick={handleLogout} color="primary">Logout</Button>
                 </DialogActions>
             </Dialog>
         </ThemeProvider>
