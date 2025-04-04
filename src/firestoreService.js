@@ -8,36 +8,53 @@ export const getEvents = async () => {
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
-// 🔹 Aggiunge un evento con il nickname corretto
 export const addEvent = async (userId, date, eventType, nickname) => {
     try {
         const eventRef = collection(db, "events");
+        const q = query(eventRef, where("userId", "==", userId), where("date", "==", date));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            throw new Error("Hai già un evento per questa data.");
+        }
+
         await addDoc(eventRef, {
             userId,
             date,
             eventType,
-            nickname // 👈 Salviamo il nickname corretto nell'evento
+            nickname
         });
     } catch (error) {
         console.error("Errore nell'aggiunta dell'evento:", error);
+        throw error;
     }
 };
 
-// 🔹 Elimina un evento
-export const deleteEvent = async (eventId) => {
+export const deleteEvent = async (eventId, userId) => {
     try {
-        await deleteDoc(doc(db, "events", eventId));
+        const eventDoc = await getDoc(doc(db, "events", eventId));
+        if (eventDoc.exists() && eventDoc.data().userId === userId) {
+            await deleteDoc(doc(db, "events", eventId));
+        } else {
+            throw new Error("Non sei autorizzato a cancellare questo evento.");
+        }
     } catch (error) {
         console.error("Errore nell'eliminazione dell'evento:", error);
+        throw error;
     }
 };
 
-// 🔹 Modifica il tipo di evento
-export const updateEvent = async (eventId, newType) => {
+export const updateEvent = async (eventId, eventType) => {
     try {
-        await updateDoc(doc(db, "events", eventId), { eventType: newType });
+        console.log("updateEvent - eventId:", eventId, "eventType:", eventType);
+        const eventDoc = doc(db, "events", eventId);
+        await updateDoc(eventDoc, {
+            eventType
+        });
+        console.log("Event updated successfully");
     } catch (error) {
-        console.error("Errore nella modifica dell'evento:", error);
+        console.error("Errore nell'aggiornamento dell'evento:", error);
+        throw error;
     }
 };
 
