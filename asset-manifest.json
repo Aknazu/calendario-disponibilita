@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/calendario-disponibilita/static/css/main.e99ba88b.css",
-    "main.js": "/calendario-disponibilita/static/js/main.a06fb9c2.js",
+    "main.js": "/calendario-disponibilita/static/js/main.fdf03f9c.js",
     "static/js/453.b04a077d.chunk.js": "/calendario-disponibilita/static/js/453.b04a077d.chunk.js",
     "index.html": "/calendario-disponibilita/index.html",
     "main.e99ba88b.css.map": "/calendario-disponibilita/static/css/main.e99ba88b.css.map",
-    "main.a06fb9c2.js.map": "/calendario-disponibilita/static/js/main.a06fb9c2.js.map",
+    "main.fdf03f9c.js.map": "/calendario-disponibilita/static/js/main.fdf03f9c.js.map",
     "453.b04a077d.chunk.js.map": "/calendario-disponibilita/static/js/453.b04a077d.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.e99ba88b.css",
-    "static/js/main.a06fb9c2.js"
+    "static/js/main.fdf03f9c.js"
   ]
 }
