@@ -111,6 +111,7 @@ const Calendar = ({ user }) => {
                 locale={itLocale}
                 dayHeaderContent={(args) => args.text.charAt(0).toUpperCase() + args.text.slice(1)}
                 titleFormat={{ year: 'numeric', month: 'long', day: 'numeric' }}
+                className="fc"
             />
             <Dialog open={open} onClose={() => setOpen(false)}>
                 <DialogTitle>{existingEvent ? "Modifica Evento" : "Aggiungi Evento"}</DialogTitle>
