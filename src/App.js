@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import Calendar from "./components/Calendar";
-import { CssBaseline, ThemeProvider, createTheme, Container, Typography, AppBar, Toolbar, Button, TextField } from "@mui/material";
+import { CssBaseline, ThemeProvider, createTheme, Container, Typography, AppBar, Toolbar, Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
 import GoogleIcon from '@mui/icons-material/Google';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { addUserToFirestore, getUserNickname } from "./firestoreService";
+import { addUserToFirestore, getUserNickname, updateUserNickname } from "./firestoreService";
 
 const theme = createTheme({
     palette: {
@@ -21,20 +21,30 @@ function App() {
     const [user, setUser] = useState(null);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [nickname, setNickname] = useState("");
+    const [nickname, setNickname] = useState(""); // Stato per il nickname
     const [isRegistering, setIsRegistering] = useState(false);
-    const [loading, setLoading] = useState(true);
+    const [showNicknameDialog, setShowNicknameDialog] = useState(false);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             if (currentUser) {
-                const nickname = await getUserNickname(currentUser.uid);
-                setUser({ ...currentUser, nickname });
+                let savedNickname = await getUserNickname(currentUser.uid);
+                if (!savedNickname) {
+                    savedNickname = "Anonimo";
+                    await addUserToFirestore(currentUser.uid, savedNickname);
+                }
+
+                setUser({ ...currentUser, nickname: savedNickname });
+
+                // Se il nickname è ancora "Anonimo", obbliga a cambiarlo
+                if (savedNickname === "Anonimo") {
+                    setShowNicknameDialog(true);
+                }
             } else {
                 setUser(null);
             }
-            setLoading(false);
         });
+
         return () => unsubscribe();
     }, []);
 
@@ -47,14 +57,15 @@ function App() {
     };
 
     const handleRegister = async () => {
-        if (!nickname.trim()) {
-            alert("Il nickname è obbligatorio.");
-            return;
-        }
-
         try {
+            if (!nickname) {
+                alert("Il nickname è obbligatorio.");
+                return;
+            }
+
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
+
             await addUserToFirestore(user.uid, nickname);
             setUser({ ...user, nickname });
         } catch (error) {
@@ -67,20 +78,19 @@ function App() {
         try {
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
-            let nickname = await getUserNickname(user.uid);
 
-            if (!nickname) {
-                nickname = prompt("Inserisci il tuo nickname:");
-                if (nickname) {
-                    await addUserToFirestore(user.uid, nickname);
-                } else {
-                    alert("Il nickname è obbligatorio.");
-                    await signOut(auth);
-                    return;
-                }
+            let savedNickname = await getUserNickname(user.uid);
+            if (!savedNickname) {
+                savedNickname = "Anonimo";
+                await addUserToFirestore(user.uid, savedNickname);
             }
 
-            setUser({ ...user, nickname });
+            setUser({ ...user, nickname: savedNickname });
+
+            // Se il nickname è ancora "Anonimo", forziamo il popup
+            if (savedNickname === "Anonimo") {
+                setShowNicknameDialog(true);
+            }
         } catch (error) {
             console.error("Errore nel login con Google:", error);
         }
@@ -88,10 +98,20 @@ function App() {
 
     const handleLogout = async () => {
         await signOut(auth);
-        setUser(null);
     };
 
-    if (loading) return <Typography>Caricamento...</Typography>;
+    const handleNicknameUpdate = async () => {
+        if (!nickname) {
+            alert("Il nickname è obbligatorio.");
+            return;
+        }
+        await updateUserNickname(user.uid, nickname);
+
+        // Aggiorniamo l'oggetto user con il nuovo nickname
+        setUser((prevUser) => ({ ...prevUser, nickname }));
+
+        setShowNicknameDialog(false);
+    };
 
     return (
         <ThemeProvider theme={theme}>
@@ -111,9 +131,11 @@ function App() {
                             </Button>
                         </>
                     ) : (
-                        <Button color="inherit" onClick={handleGoogleLogin} startIcon={<GoogleIcon />}>
-                            Accedi con Google
-                        </Button>
+                        <>
+                            <Button color="inherit" onClick={handleGoogleLogin} startIcon={<GoogleIcon />}>
+                                Accedi con Google
+                            </Button>
+                        </>
                     )}
                 </Toolbar>
             </AppBar>
@@ -165,6 +187,26 @@ function App() {
                     </div>
                 )}
             </Container>
+
+            {/* Popup per modificare il nickname se è "Anonimo" */}
+            <Dialog open={showNicknameDialog} onClose={() => {}}>
+                <DialogTitle>Imposta il tuo Nickname</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        label="Nickname"
+                        variant="outlined"
+                        fullWidth
+                        margin="normal"
+                        value={nickname}
+                        onChange={(e) => setNickname(e.target.value)}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleNicknameUpdate} color="primary">
+                        Salva
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </ThemeProvider>
     );
 }

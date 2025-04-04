@@ -21,11 +21,12 @@ const Calendar = ({ user }) => {
     const eventList = await getEvents();
     setEvents(eventList.map(event => ({
       id: event.id,
-      title: `${event.eventType} - ${event.nickname || "Anonimo"}`, // Mostra il nickname accanto all'evento
+      title: `${event.eventType} - ${event.nickname || "Anonimo"}`, // 👈 Mostriamo il nickname
       start: event.date,
       color: event.eventType === "Disponibile" ? "#1A73E8" : event.eventType === "Disponibilità Limitata" ? "#F4B400" : "#EA4335",
     })));
   };
+
 
   const handleDateClick = (info) => {
     const clickedDate = info.dateStr;
@@ -46,16 +47,14 @@ const Calendar = ({ user }) => {
   };
 
   const handleEventSelection = async (type) => {
-    const nickname = user.displayName || "Anonimo"; // 👈 Otteniamo il nickname dall'account Google
     if (existingEvent) {
       await updateEvent(existingEvent.id, type);
     } else {
-      await addEvent(user.uid, nickname, selectedDate, type); // 👈 Passiamo anche il nickname
+      await addEvent(user.uid, selectedDate, type);
     }
     fetchEvents();
     setOpen(false);
   };
-
 
   const handleDeleteEvent = async () => {
     if (existingEvent) {
