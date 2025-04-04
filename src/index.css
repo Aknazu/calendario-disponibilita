@@ -31,3 +31,17 @@ select {
   margin-top: 10px;
 }
 
+/* Stili per i giorni della settimana in modalità light e dark mode */
+.fc-theme-standard .fc-scrollgrid {
+  color: inherit;
+}
+
+.fc-theme-standard .fc-scrollgrid .fc-col-header-cell-cushion {
+  color: inherit;
+}
+
+/* Stili per i giorni della settimana in modalità dark mode */
+body.dark-mode .fc-theme-standard .fc-scrollgrid .fc-col-header-cell {
+  background-color: #1d1d1d; /* Colore di sfondo scuro */
+  color: #ffffff; /* Colore del testo bianco */
+}

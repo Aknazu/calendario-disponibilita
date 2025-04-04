@@ -1,17 +1,48 @@
 import React, { useState, useEffect } from "react";
 import Calendar from "./components/Calendar";
-import { CssBaseline, ThemeProvider, createTheme, Container, Typography, AppBar, Toolbar, Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Box } from "@mui/material";
+import { CssBaseline, ThemeProvider, createTheme, Container, Typography, AppBar, Toolbar, Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Box, Fab } from "@mui/material";
 import GoogleIcon from '@mui/icons-material/Google';
 import LogoutIcon from '@mui/icons-material/Logout';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { addUserToFirestore, getUserNickname, updateUserNickname } from "./firestoreService";
 
-const theme = createTheme({
+const lightTheme = createTheme({
     palette: {
         mode: "light",
-        primary: { main: "#1a73e8" },
-        secondary: { main: "#fbbc04" },
+        primary: { main: "#6200ea" },
+        secondary: { main: "#03dac6" },
+    },
+    typography: {
+        fontFamily: "Roboto, Arial, sans-serif",
+    },
+    components: {
+        MuiButton: {
+            styleOverrides: {
+                root: {
+                    borderRadius: 8,
+                    textTransform: "none",
+                },
+            },
+        },
+    },
+});
+
+const darkTheme = createTheme({
+    palette: {
+        mode: "dark",
+        primary: { main: "#bb86fc" },
+        secondary: { main: "#03dac6" },
+        background: {
+            default: "#121212",
+            paper: "#1d1d1d",
+        },
+        text: {
+            primary: "#ffffff",
+            secondary: "#b0b0b0",
+        },
     },
     typography: {
         fontFamily: "Roboto, Arial, sans-serif",
@@ -35,8 +66,9 @@ function App() {
     const [nickname, setNickname] = useState("");
     const [isRegistering, setIsRegistering] = useState(false);
     const [showNicknameDialog, setShowNicknameDialog] = useState(false);
-    const [error, setError] = useState(null); // Stato per il popup di errore
-    const [showLogoutDialog, setShowLogoutDialog] = useState(false); // Stato per il popup di conferma logout
+    const [error, setError] = useState(null);
+    const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+    const [darkMode, setDarkMode] = useState(false);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -59,6 +91,10 @@ function App() {
 
         return () => unsubscribe();
     }, []);
+
+    useEffect(() => {
+        document.body.classList.toggle('dark-mode', darkMode);
+    }, [darkMode]);
 
     const handleLogin = async () => {
         try {
@@ -131,9 +167,9 @@ function App() {
     };
 
     return (
-        <ThemeProvider theme={theme}>
+        <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
             <CssBaseline />
-            <AppBar position="static">
+            <AppBar position="static" style={{ borderRadius: "20px" }}>
                 <Toolbar>
                     <Typography variant="h6" style={{ flexGrow: 1 }}>
                         Calendario Disponibilità
@@ -249,6 +285,14 @@ function App() {
                     <Button onClick={handleLogout} color="primary">Logout</Button>
                 </DialogActions>
             </Dialog>
+            <Fab
+                color="primary"
+                aria-label="toggle dark mode"
+                onClick={() => setDarkMode(!darkMode)}
+                style={{ position: "fixed", bottom: 16, right: 16 }}
+            >
+                {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+            </Fab>
         </ThemeProvider>
     );
 }
