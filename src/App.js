@@ -247,20 +247,46 @@ function App() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                         />
-                        <Button color="primary" fullWidth onClick={handleLogin}>
-                            Login
-                        </Button>
-                        <Button color="secondary" fullWidth onClick={handleGoogleLogin} startIcon={<GoogleIcon />}>
-                            Login con Google
-                        </Button>
+                        {isRegistering && (
+                            <TextField
+                                label="Nickname"
+                                variant="outlined"
+                                fullWidth
+                                margin="normal"
+                                value={nickname}
+                                onChange={(e) => setNickname(e.target.value)}
+                            />
+                        )}
                         <Box display="flex" justifyContent="space-between" mt={2}>
-                            <Button color="primary" onClick={() => setIsRegistering(true)}>
-                                Registrati
-                            </Button>
-                            <Button color="default" onClick={() => setIsRegistering(false)}>
-                                Annulla
+                            {isRegistering ? (
+                                <Button variant="contained" color="primary" fullWidth onClick={handleRegister}>
+                                    Registrati
+                                </Button>
+                            ) : (
+                                <Button variant="contained" color="primary" fullWidth onClick={handleLogin}>
+                                    Login
+                                </Button>
+                            )}
+                            <Button
+                                variant="outlined"
+                                color="default"
+                                fullWidth
+                                onClick={handleGoogleLogin}
+                                startIcon={<GoogleIcon />}
+                                style={{
+                                    backgroundColor: "white",
+                                    borderColor: "black",
+                                    color: "black",
+                                    textTransform: "none",
+                                    marginLeft: "10px"
+                                }}
+                            >
+                                Accedi tramite Google
                             </Button>
                         </Box>
+                        <Button color="secondary" fullWidth onClick={() => setIsRegistering(!isRegistering)}>
+                            {isRegistering ? "Hai già un account? Accedi" : "Non hai un account? Registrati"}
+                        </Button>
                     </div>
                 )}
             </Container>
