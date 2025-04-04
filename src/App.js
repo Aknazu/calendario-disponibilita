@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Calendar from "./components/Calendar";
-import { CssBaseline, ThemeProvider, createTheme, Container, Typography, AppBar, Toolbar, Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Box, Fab } from "@mui/material";
+import { CssBaseline, ThemeProvider, createTheme, Container, Typography, AppBar, Toolbar, Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Box, Fab } from "@mui/material";
 import GoogleIcon from '@mui/icons-material/Google';
 import LogoutIcon from '@mui/icons-material/Logout';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
@@ -8,6 +8,8 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { addUserToFirestore, getUserNickname, updateUserNickname } from "./firestoreService";
+
+const d20Icon = process.env.PUBLIC_URL + '/d20.png';
 
 const lightTheme = createTheme({
     palette: {
@@ -171,6 +173,7 @@ function App() {
             <CssBaseline />
             <AppBar position="static" style={{ borderRadius: "20px" }}>
                 <Toolbar>
+                    <img src={d20Icon} alt="d20 icon" style={{ height: "40px", marginRight: "10px" }} />
                     <Typography variant="h6" style={{ flexGrow: 1 }}>
                         Calendario Disponibilità
                     </Typography>
