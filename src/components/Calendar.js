@@ -21,12 +21,11 @@ const Calendar = ({ user }) => {
     const eventList = await getEvents();
     setEvents(eventList.map(event => ({
       id: event.id,
-      title: `${event.eventType} - ${event.nickname || "Anonimo"}`, // 👈 Mostriamo il nickname
+      title: `${event.nickname}: ${event.eventType}`, // 👈 Mostriamo il nickname nell'evento
       start: event.date,
       color: event.eventType === "Disponibile" ? "#1A73E8" : event.eventType === "Disponibilità Limitata" ? "#F4B400" : "#EA4335",
     })));
   };
-
 
   const handleDateClick = (info) => {
     const clickedDate = info.dateStr;
@@ -50,7 +49,8 @@ const Calendar = ({ user }) => {
     if (existingEvent) {
       await updateEvent(existingEvent.id, type);
     } else {
-      await addEvent(user.uid, selectedDate, type);
+      // 👇 Ora passiamo anche il nickname quando aggiungiamo un evento
+      await addEvent(user.uid, selectedDate, type, user.nickname);
     }
     fetchEvents();
     setOpen(false);

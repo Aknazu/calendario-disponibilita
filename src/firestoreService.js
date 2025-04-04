@@ -1,54 +1,29 @@
 import { db } from "./firebaseConfig";
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, getDoc, setDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc } from "firebase/firestore";
 
-// Recupera il nickname dell'utente dal database
-export const getUserNickname = async (userId) => {
-    const userDoc = await getDoc(doc(db, "users", userId));
-    return userDoc.exists() ? userDoc.data().nickname : "Anonimo";
-};
-
-// Salva un nuovo utente con il nickname in Firestore
-export const addUserToFirestore = async (userId, nickname) => {
-    try {
-        await setDoc(doc(db, "users", userId), { nickname });
-    } catch (error) {
-        console.error("Errore nel salvataggio del nickname:", error);
-    }
-};
-
-// Ottieni tutti gli eventi
+// 🔹 Recupera gli eventi e include il nickname dell'utente
 export const getEvents = async () => {
     const eventRef = collection(db, "events");
     const querySnapshot = await getDocs(eventRef);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
-// Aggiungi un evento salvando anche il nickname
-export const addEvent = async (userId, date, eventType) => {
+// 🔹 Aggiunge un evento con il nickname corretto
+export const addEvent = async (userId, date, eventType, nickname) => {
     try {
-        const nickname = await getUserNickname(userId); // 👈 Otteniamo il nickname
         const eventRef = collection(db, "events");
         await addDoc(eventRef, {
             userId,
             date,
             eventType,
-            nickname, // 👈 Salviamo il nickname
+            nickname // 👈 Salviamo il nickname corretto nell'evento
         });
     } catch (error) {
         console.error("Errore nell'aggiunta dell'evento:", error);
     }
 };
 
-export const updateUserNickname = async (userId, newNickname) => {
-    try {
-        await updateDoc(doc(db, "users", userId), { nickname: newNickname });
-    } catch (error) {
-        console.error("Errore nell'aggiornamento del nickname:", error);
-    }
-};
-
-
-// Elimina un evento
+// 🔹 Elimina un evento
 export const deleteEvent = async (eventId) => {
     try {
         await deleteDoc(doc(db, "events", eventId));
@@ -57,11 +32,40 @@ export const deleteEvent = async (eventId) => {
     }
 };
 
-// Aggiorna un evento esistente
+// 🔹 Modifica il tipo di evento
 export const updateEvent = async (eventId, newType) => {
     try {
         await updateDoc(doc(db, "events", eventId), { eventType: newType });
     } catch (error) {
         console.error("Errore nella modifica dell'evento:", error);
+    }
+};
+
+// 🔹 Salva l'utente e il suo nickname in Firestore
+export const addUserToFirestore = async (userId, nickname) => {
+    try {
+        await setDoc(doc(db, "users", userId), { nickname }, { merge: true });
+    } catch (error) {
+        console.error("Errore nel salvataggio dell'utente:", error);
+    }
+};
+
+// 🔹 Recupera il nickname dell'utente
+export const getUserNickname = async (userId) => {
+    try {
+        const userDoc = await getDoc(doc(db, "users", userId));
+        return userDoc.exists() ? userDoc.data().nickname : null;
+    } catch (error) {
+        console.error("Errore nel recupero del nickname:", error);
+        return null;
+    }
+};
+
+// 🔹 Aggiorna il nickname dell'utente
+export const updateUserNickname = async (userId, newNickname) => {
+    try {
+        await updateDoc(doc(db, "users", userId), { nickname: newNickname });
+    } catch (error) {
+        console.error("Errore nell'aggiornamento del nickname:", error);
     }
 };
