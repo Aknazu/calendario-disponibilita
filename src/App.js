@@ -21,9 +21,10 @@ function App() {
     const [user, setUser] = useState(null);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [nickname, setNickname] = useState(""); // Stato per il nickname
+    const [nickname, setNickname] = useState("");
     const [isRegistering, setIsRegistering] = useState(false);
     const [showNicknameDialog, setShowNicknameDialog] = useState(false);
+    const [error, setError] = useState(null); // Stato per il popup di errore
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -36,7 +37,6 @@ function App() {
 
                 setUser({ ...currentUser, nickname: savedNickname });
 
-                // Se il nickname è ancora "Anonimo", obbliga a cambiarlo
                 if (savedNickname === "Anonimo") {
                     setShowNicknameDialog(true);
                 }
@@ -52,14 +52,18 @@ function App() {
         try {
             await signInWithEmailAndPassword(auth, email, password);
         } catch (error) {
-            console.error("Errore nel login:", error.message);
+            if (error.code === "auth/invalid-credential") {
+                setError("Credenziali errate. Se hai effettuato la registrazione con Google, prova ad accedere con quell'opzione.");
+            } else {
+                setError("Errore durante il login.");
+            }
         }
     };
 
     const handleRegister = async () => {
         try {
             if (!nickname) {
-                alert("Il nickname è obbligatorio.");
+                setError("Il nickname è obbligatorio.");
                 return;
             }
 
@@ -69,7 +73,11 @@ function App() {
             await addUserToFirestore(user.uid, nickname);
             setUser({ ...user, nickname });
         } catch (error) {
-            console.error("Errore nella registrazione:", error.message);
+            if (error.code === "auth/weak-password") {
+                setError("La password è troppo debole. Deve contenere almeno 6 caratteri.");
+            } else {
+                setError("Errore durante la registrazione.");
+            }
         }
     };
 
@@ -87,12 +95,11 @@ function App() {
 
             setUser({ ...user, nickname: savedNickname });
 
-            // Se il nickname è ancora "Anonimo", forziamo il popup
             if (savedNickname === "Anonimo") {
                 setShowNicknameDialog(true);
             }
         } catch (error) {
-            console.error("Errore nel login con Google:", error);
+            setError("Errore nel login con Google.");
         }
     };
 
@@ -102,14 +109,11 @@ function App() {
 
     const handleNicknameUpdate = async () => {
         if (!nickname) {
-            alert("Il nickname è obbligatorio.");
+            setError("Il nickname è obbligatorio.");
             return;
         }
         await updateUserNickname(user.uid, nickname);
-
-        // Aggiorniamo l'oggetto user con il nuovo nickname
         setUser((prevUser) => ({ ...prevUser, nickname }));
-
         setShowNicknameDialog(false);
     };
 
@@ -131,11 +135,9 @@ function App() {
                             </Button>
                         </>
                     ) : (
-                        <>
-                            <Button color="inherit" onClick={handleGoogleLogin} startIcon={<GoogleIcon />}>
-                                Accedi con Google
-                            </Button>
-                        </>
+                        <Button color="inherit" onClick={handleGoogleLogin} startIcon={<GoogleIcon />}>
+                            Accedi con Google
+                        </Button>
                     )}
                 </Toolbar>
             </AppBar>
@@ -205,6 +207,15 @@ function App() {
                     <Button onClick={handleNicknameUpdate} color="primary">
                         Salva
                     </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Popup di errore */}
+            <Dialog open={!!error} onClose={() => setError(null)}>
+                <DialogTitle>Errore</DialogTitle>
+                <DialogContent>{error}</DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setError(null)} color="primary">OK</Button>
                 </DialogActions>
             </Dialog>
         </ThemeProvider>
