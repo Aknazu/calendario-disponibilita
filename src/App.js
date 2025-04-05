@@ -10,6 +10,7 @@ import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { addUserToFirestore, getUserNickname, updateUserNickname, updateEventsNickname, isNicknameUnique, addEvent, getEvents } from "./firestoreService";
 import Cookies from 'js-cookie';
+import { signInWithCustomToken } from "firebase/auth";
 
 const d20Icon = process.env.PUBLIC_URL + '/d20.png';
 
@@ -96,7 +97,7 @@ function App() {
             } else {
                 const token = Cookies.get('authToken');
                 if (token) {
-                    auth.signInWithCustomToken(token).then(async (userCredential) => {
+                    signInWithCustomToken(auth, token).then(async (userCredential) => {
                         const user = userCredential.user;
                         let savedNickname = await getUserNickname(user.uid);
                         if (!savedNickname) {
@@ -202,6 +203,8 @@ function App() {
         await signOut(auth);
         Cookies.remove('authToken');
         setShowLogoutDialog(false);
+        // Refresh the page
+        window.location.reload();
     };
 
     const handleNicknameUpdate = async () => {
@@ -263,6 +266,8 @@ function App() {
         const updatedEvents = await getEvents();
         setEvents(updatedEvents);
 
+        //Refresh the page
+        window.location.reload();
     };
 
     const parseDates = (input) => {
@@ -442,6 +447,7 @@ function App() {
                         fullWidth
                         margin="normal"
                         value={multiEventType}
+                        defaultValue='Disponibile'
                         onChange={(e) => setMultiEventType(e.target.value)}
                     >
                         <MenuItem value="Disponibile">Disponibile</MenuItem>
