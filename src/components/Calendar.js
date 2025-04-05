@@ -7,6 +7,8 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, Menu
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import itLocale from '@fullcalendar/core/locales/it';
+import { isMobile } from "react-device-detect";
+import { useSwipeable } from "react-swipeable";
 
 const Calendar = ({ user }) => {
     const [events, setEvents] = useState([]);
@@ -88,16 +90,28 @@ const Calendar = ({ user }) => {
         setOpen(false);
     };
 
+    const swipeHandlers = useSwipeable({
+        onSwipedLeft: () => calendarRef.current.getApi().next(),
+        onSwipedRight: () => calendarRef.current.getApi().prev(),
+    });
+
+    const calendarRef = React.createRef();
+
     return (
-        <div>
+        <div style={{ width: "100%", height: "100%" }} {...swipeHandlers}>
             <FullCalendar
+                ref={calendarRef}
                 plugins={[dayGridPlugin, interactionPlugin]}
                 initialView="dayGridMonth"
                 events={events}
                 dateClick={handleDateClick}
                 eventClick={handleEventClick}
                 height="auto"
-                headerToolbar={{
+                headerToolbar={isMobile ? {
+                    left: '',
+                    center: 'title',
+                    right: ''
+                } : {
                     left: 'prev,next',
                     center: 'title',
                     right: 'today,dayGridMonth,dayGridWeek,dayGridDay'
@@ -112,6 +126,8 @@ const Calendar = ({ user }) => {
                 dayHeaderContent={(args) => args.text.charAt(0).toUpperCase() + args.text.slice(1)}
                 titleFormat={{ year: 'numeric', month: 'long', day: 'numeric' }}
                 className="fc"
+                handleWindowResize={true}
+                windowResizeDelay={200}
             />
             <Dialog open={open} onClose={() => setOpen(false)}>
                 <DialogTitle>{existingEvent ? "Modifica Evento" : "Aggiungi Evento"}</DialogTitle>
