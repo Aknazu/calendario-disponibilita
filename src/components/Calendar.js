@@ -98,7 +98,7 @@ const Calendar = ({ user }) => {
     const calendarRef = React.createRef();
 
     return (
-        <div style={{ width: "100%", height: "100%" }} {...swipeHandlers}>
+        <div {...swipeHandlers}>
             <FullCalendar
                 ref={calendarRef}
                 plugins={[dayGridPlugin, interactionPlugin]}

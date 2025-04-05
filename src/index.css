@@ -46,39 +46,9 @@ body.dark-mode .fc-theme-standard .fc-scrollgrid .fc-col-header-cell {
   color: #ffffff;
 }
 
-/* Correzione bordi del calendario */
-.fc {
-  border-radius: 20px;
-  overflow: hidden;
-  border: 1px solid #ccc;
-}
-
-.fc .fc-daygrid-day {
-  border: 1px solid #ddd;
-  border-radius: 5px;
-}
-
 .fc .fc-scrollgrid,
-.fc .fc-scrollgrid-sync-table {
-  border-radius: 20px;
+.fc .fc-scrollgrid-sync-table
+{
+  border-radius: 14px;
   overflow: hidden;
-}
-
-.fc .fc-daygrid-day-frame {
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-/* Correzione angoli bottoni */
-.fc .fc-toolbar button {
-  border-radius: 6px !important;
-  padding: 8px 12px;
-}
-
-.fc .fc-toolbar button:first-child {
-  border-radius: 6px 0 0 6px !important;
-}
-
-.fc .fc-toolbar button:last-child {
-  border-radius: 0 6px 6px 0 !important;
 }
