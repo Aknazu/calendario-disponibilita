@@ -29,7 +29,7 @@ const Calendar = ({ user }) => {
             id: event.id,
             title: `${event.nickname}: ${event.eventType === "Disponibilità Limitata" ? "Disp. limitata" : event.eventType}`,
             start: event.date,
-            color: event.eventType === "Disponibile" ? "#1A73E8" : event.eventType === "Disponibilità Limitata" ? "#F4B400" : "#EA4335",
+            color: event.eventType === "Disponibile" ? "#7bb662" : event.eventType === "Disponibilità Limitata" ? "#F4B400" : "#EA4335",
             userId: event.userId
         })));
     };
