@@ -262,6 +262,7 @@ function App() {
         // Aggiorna il calendario
         const updatedEvents = await getEvents();
         setEvents(updatedEvents);
+
     };
 
     const parseDates = (input) => {
