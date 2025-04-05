@@ -8,6 +8,7 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { addUserToFirestore, getUserNickname, updateUserNickname, updateEventsNickname, isNicknameUnique } from "./firestoreService";
+import Cookies from 'js-cookie';
 
 const d20Icon = process.env.PUBLIC_URL + '/d20.png';
 
@@ -88,7 +89,22 @@ function App() {
                     setShowNicknameDialog(true);
                 }
             } else {
-                setUser(null);
+                const token = Cookies.get('authToken');
+                if (token) {
+                    auth.signInWithCustomToken(token).then(async (userCredential) => {
+                        const user = userCredential.user;
+                        let savedNickname = await getUserNickname(user.uid);
+                        if (!savedNickname) {
+                            savedNickname = "Anonimo";
+                            await addUserToFirestore(user.uid, savedNickname);
+                        }
+                        setUser({ ...user, nickname: savedNickname });
+                    }).catch((error) => {
+                        console.error("Errore durante l'autenticazione automatica:", error);
+                    });
+                } else {
+                    setUser(null);
+                }
             }
         });
 
@@ -101,7 +117,10 @@ function App() {
 
     const handleLogin = async () => {
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            const token = await user.getIdToken();
+            Cookies.set('authToken', token, { expires: 7 });
         } catch (error) {
             if (error.code === "auth/invalid-credential") {
                 setError("Credenziali errate. Se hai effettuato la registrazione con Google, prova ad accedere con quell'opzione.");
@@ -126,6 +145,8 @@ function App() {
 
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
+            const token = await user.getIdToken();
+            Cookies.set('authToken', token, { expires: 7 });
 
             await addUserToFirestore(user.uid, nickname);
             setUser({ ...user, nickname });
@@ -143,6 +164,8 @@ function App() {
         try {
             const result = await signInWithPopup(auth, provider);
             const user = result.user;
+            const token = await user.getIdToken();
+            Cookies.set('authToken', token, { expires: 7 });
 
             let savedNickname = await getUserNickname(user.uid);
             if (!savedNickname) {
@@ -162,6 +185,7 @@ function App() {
 
     const handleLogout = async () => {
         await signOut(auth);
+        Cookies.remove('authToken');
         setShowLogoutDialog(false);
     };
 
