@@ -3,27 +3,35 @@ import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where, g
 
 // 🔹 Recupera gli eventi e include il nickname dell'utente
 export const getEvents = async () => {
-    const eventRef = collection(db, "events");
-    const querySnapshot = await getDocs(eventRef);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    try {
+        const eventRef = collection(db, "events");
+        const querySnapshot = await getDocs(eventRef);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Errore nel recupero degli eventi:", error);
+        throw error;
+    }
 };
 
 export const addEvent = async (userId, date, eventType, nickname) => {
     try {
+        console.log(`Checking for existing events for user: ${userId}, date: ${date}`); // Log per il debug
         const eventRef = collection(db, "events");
         const q = query(eventRef, where("userId", "==", userId), where("date", "==", date));
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-            throw new Error("Hai già un evento per questa data.");
+            throw new Error(`Hai già un evento per la data ${date}.`);
         }
 
+        console.log(`Adding event for user: ${userId}, date: ${date}, type: ${eventType}, nickname: ${nickname}`); // Log per il debug
         await addDoc(eventRef, {
             userId,
             date,
             eventType,
             nickname
         });
+        console.log(`Evento aggiunto: ${date}, ${eventType}, ${nickname}`); // Log per il debug
     } catch (error) {
         console.error("Errore nell'aggiunta dell'evento:", error);
         throw error;
@@ -115,3 +123,4 @@ export const isNicknameUnique = async (nickname) => {
         throw error;
     }
 };
+

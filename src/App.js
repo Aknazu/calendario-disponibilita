@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import Calendar from "./components/Calendar";
-import { CssBaseline, ThemeProvider, createTheme, Container, Typography, AppBar, Toolbar, Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Box, Fab, Menu, MenuItem } from "@mui/material";
+import { CssBaseline, ThemeProvider, createTheme, Container, Typography, AppBar, Toolbar, Button, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Box, Fab, Menu, MenuItem, Select } from "@mui/material";
 import GoogleIcon from '@mui/icons-material/Google';
 import LogoutIcon from '@mui/icons-material/Logout';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import AddIcon from '@mui/icons-material/Add';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { addUserToFirestore, getUserNickname, updateUserNickname, updateEventsNickname, isNicknameUnique } from "./firestoreService";
+import { addUserToFirestore, getUserNickname, updateUserNickname, updateEventsNickname, isNicknameUnique, addEvent, getEvents } from "./firestoreService";
 import Cookies from 'js-cookie';
 
 const d20Icon = process.env.PUBLIC_URL + '/d20.png';
@@ -73,6 +74,10 @@ function App() {
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
     const [anchorEl, setAnchorEl] = useState(null);
+    const [showMultiEventDialog, setShowMultiEventDialog] = useState(false);
+    const [multiEventDates, setMultiEventDates] = useState("");
+    const [multiEventType, setMultiEventType] = useState("");
+    const [events, setEvents] = useState([]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -114,6 +119,16 @@ function App() {
     useEffect(() => {
         document.body.classList.toggle('dark-mode', darkMode);
     }, [darkMode]);
+
+    useEffect(() => {
+        const fetchEvents = async () => {
+            if (user) {
+                const events = await getEvents();
+                setEvents(events);
+            }
+        };
+        fetchEvents();
+    }, [user]);
 
     const handleLogin = async () => {
         try {
@@ -220,6 +235,42 @@ function App() {
         handleMenuClose();
     };
 
+    const handleMultiEventSubmit = async () => {
+        const dates = parseDates(multiEventDates);
+        const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0'); // Ottieni il mese corrente (1-12) e formatta con due cifre
+        const currentYear = new Date().getFullYear(); // Ottieni l'anno corrente
+        console.log("Dates to add:", dates); // Log per il debug
+        for (const date of dates) {
+            const day = String(date).padStart(2, '0'); // Format the day with two digits
+            const fullDate = `${currentYear}-${currentMonth}-${day}`;
+            try {
+                console.log(`Trying to add event for date: ${fullDate}, type: ${multiEventType}, nickname: ${user.nickname}`); // Log per il debug
+                await addEvent(user.uid, fullDate, multiEventType, user.nickname);
+                console.log(`Evento aggiunto per il giorno ${fullDate}`); // Log per il debug
+            } catch (error) {
+                console.error(`Errore nell'aggiunta dell'evento per il giorno ${fullDate}:`, error);
+            }
+        }
+        setShowMultiEventDialog(false);
+        window.location.reload(); // Ricarica la pagina dopo l'inserimento degli eventi
+    };
+
+    const parseDates = (input) => {
+        const dates = [];
+        const parts = input.split(',');
+        parts.forEach(part => {
+            if (part.includes('-')) {
+                const [start, end] = part.split('-').map(Number);
+                for (let i = start; i <= end; i++) {
+                    dates.push(i);
+                }
+            } else {
+                dates.push(Number(part));
+            }
+        });
+        return dates;
+    };
+
     return (
         <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
             <CssBaseline />
@@ -250,7 +301,7 @@ function App() {
             </AppBar>
             <Container maxWidth="lg" style={{ padding: "20px" }}>
                 {user ? (
-                    <Calendar user={user} />
+                    <Calendar user={user} events={events} />
                 ) : (
                     <div style={{ textAlign: "center" }}>
                         <Typography variant="h6">Effettua il login</Typography>
@@ -356,8 +407,46 @@ function App() {
             >
                 {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
             </Fab>
+            <Fab
+                color="primary"
+                aria-label="add multiple events"
+                onClick={() => setShowMultiEventDialog(true)}
+                style={{ position: "fixed", bottom: 80, right: 16 }}
+            >
+                <AddIcon />
+            </Fab>
+            <Dialog open={showMultiEventDialog} onClose={() => setShowMultiEventDialog(false)}>
+                <DialogTitle>Inserisci Eventi Multipli</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        label="Giorni (es. 1-5,7,8)"
+                        variant="outlined"
+                        fullWidth
+                        margin="normal"
+                        value={multiEventDates}
+                        onChange={(e) => setMultiEventDates(e.target.value)}
+                    />
+                    <Select
+                        label="Tipo di Evento"
+                        variant="outlined"
+                        fullWidth
+                        margin="normal"
+                        value={multiEventType}
+                        onChange={(e) => setMultiEventType(e.target.value)}
+                    >
+                        <MenuItem value="disponibile">Disponibile</MenuItem>
+                        <MenuItem value="disponibilita-limitata">Disponibilità Limitata</MenuItem>
+                        <MenuItem value="forse">Forse</MenuItem>
+                    </Select>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setShowMultiEventDialog(false)} color="default">Annulla</Button>
+                    <Button onClick={handleMultiEventSubmit} color="primary">Inserisci</Button>
+                </DialogActions>
+            </Dialog>
         </ThemeProvider>
     );
 }
 
 export default App;
+
