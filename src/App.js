@@ -237,22 +237,31 @@ function App() {
 
     const handleMultiEventSubmit = async () => {
         const dates = parseDates(multiEventDates);
-        const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0'); // Ottieni il mese corrente (1-12) e formatta con due cifre
-        const currentYear = new Date().getFullYear(); // Ottieni l'anno corrente
-        console.log("Dates to add:", dates); // Log per il debug
+        const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+        const currentYear = new Date().getFullYear();
+        const validEventTypes = ["Disponibile", "Disponibilità Limitata", "Forse"];
+
+        if (!validEventTypes.includes(multiEventType)) {
+            setError("Tipo di evento non valido. Seleziona un tipo di evento valido.");
+            return;
+        }
+
+        console.log("Dates to add:", dates);
         for (const date of dates) {
-            const day = String(date).padStart(2, '0'); // Format the day with two digits
+            const day = String(date).padStart(2, '0');
             const fullDate = `${currentYear}-${currentMonth}-${day}`;
             try {
-                console.log(`Trying to add event for date: ${fullDate}, type: ${multiEventType}, nickname: ${user.nickname}`); // Log per il debug
+                console.log(`Trying to add event for date: ${fullDate}, type: ${multiEventType}, nickname: ${user.nickname}`);
                 await addEvent(user.uid, fullDate, multiEventType, user.nickname);
-                console.log(`Evento aggiunto per il giorno ${fullDate}`); // Log per il debug
+                console.log(`Evento aggiunto per il giorno ${fullDate}`);
             } catch (error) {
                 console.error(`Errore nell'aggiunta dell'evento per il giorno ${fullDate}:`, error);
             }
         }
         setShowMultiEventDialog(false);
-        window.location.reload(); // Ricarica la pagina dopo l'inserimento degli eventi
+        // Aggiorna il calendario
+        const updatedEvents = await getEvents();
+        setEvents(updatedEvents);
     };
 
     const parseDates = (input) => {
@@ -434,9 +443,9 @@ function App() {
                         value={multiEventType}
                         onChange={(e) => setMultiEventType(e.target.value)}
                     >
-                        <MenuItem value="disponibile">Disponibile</MenuItem>
-                        <MenuItem value="disponibilita-limitata">Disponibilità Limitata</MenuItem>
-                        <MenuItem value="forse">Forse</MenuItem>
+                        <MenuItem value="Disponibile">Disponibile</MenuItem>
+                        <MenuItem value="Disponibilità Limitata">Disponibilità Limitata</MenuItem>
+                        <MenuItem value="Forse">Forse</MenuItem>
                     </Select>
                 </DialogContent>
                 <DialogActions>
