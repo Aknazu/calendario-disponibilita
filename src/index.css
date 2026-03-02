@@ -188,3 +188,23 @@ body.dark-mode .fc .fc-button-active {
   background-position: center;
   background-repeat: no-repeat;
 }
+
+/* Corona per i giorni con 4+ disponibilità */
+.has-crown .fc-daygrid-day-top {
+  position: relative;
+}
+
+.has-crown .fc-daygrid-day-top::after {
+  content: '👑';
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  font-size: 16px;
+  z-index: 2;
+  filter: drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.2));
+}
+
+/* Evitare che la corona si sovrapponga alla checkbox magnetica in modalità Bulk */
+.bulk-mode-active.has-crown .fc-daygrid-day-top::after {
+  left: 28px;
+}

@@ -88,6 +88,12 @@ const Calendar = ({ user, darkMode, setDarkMode }) => {
                 classes.push('bulk-selected');
             }
         }
+
+        const eventsOnThisDay = events.filter(e => e.start === formattedDate).length;
+        if (eventsOnThisDay >= 4) {
+            classes.push('has-crown');
+        }
+
         return classes.join(' ');
     };
 
