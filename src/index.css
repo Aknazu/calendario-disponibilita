@@ -197,12 +197,14 @@ body.dark-mode .fc .fc-button-active {
   background-repeat: no-repeat;
 }
 
-/* Corona per i giorni con 4+ disponibilità */
-.has-crown .fc-daygrid-day-top {
+/* Corone e loghi per le disponibilità */
+.has-big-crown .fc-daygrid-day-top,
+.has-small-crown .fc-daygrid-day-top {
   position: relative;
 }
 
-.has-crown .fc-daygrid-day-top::after {
+/* 4 o più persone Disponibili (nessun Forse) - Corona d'oro grande */
+.has-big-crown .fc-daygrid-day-top::after {
   content: '👑';
   position: absolute;
   top: 2px;
@@ -212,7 +214,25 @@ body.dark-mode .fc .fc-button-active {
   filter: drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.2));
 }
 
-/* Evitare che la corona si sovrapponga alla checkbox magnetica in modalità Bulk */
-.bulk-mode-active.has-crown .fc-daygrid-day-top::after {
+/* 4 o più persone mix Disponibili/Limitate (nessun Forse) - Corona d'argento piccola */
+.has-small-crown .fc-daygrid-day-top::after {
+  content: '♔';
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  font-size: 14px;
+  color: #70757a;
+  font-weight: bold;
+  z-index: 2;
+  filter: drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.1));
+}
+
+body.dark-mode .has-small-crown .fc-daygrid-day-top::after {
+  color: #9aa0a6;
+}
+
+/* Evitare che le corone si sovrappongano alla checkbox magnetica in modalità Bulk */
+.bulk-mode-active.has-big-crown .fc-daygrid-day-top::after,
+.bulk-mode-active.has-small-crown .fc-daygrid-day-top::after {
   left: 28px;
 }

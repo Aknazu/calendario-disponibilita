@@ -89,9 +89,17 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage }) => {
             }
         }
 
-        const eventsOnThisDay = events.filter(e => e.start === formattedDate).length;
-        if (eventsOnThisDay >= 4) {
-            classes.push('has-crown');
+        const dayEvents = events.filter(e => e.start === formattedDate);
+        const countDisponibile = dayEvents.filter(e => e.color === "#34A853").length;
+        const countLimitata = dayEvents.filter(e => e.color === "#F4B400").length;
+        const countForse = dayEvents.filter(e => e.color === "#EA4335").length;
+
+        if (countForse === 0) {
+            if (countDisponibile >= 4) {
+                classes.push('has-big-crown');
+            } else if ((countDisponibile + countLimitata) >= 4) {
+                classes.push('has-small-crown');
+            }
         }
 
         return classes.join(' ');
