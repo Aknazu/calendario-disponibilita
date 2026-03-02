@@ -77,12 +77,12 @@ function App() {
                         Calendario Disponibilità
                     </Typography>
                     {user ? (
-                        <Box display="flex" alignItems="center" flexWrap="wrap" justifyContent="flex-end" gap={1}>
-                            <Typography variant="body1" sx={{ fontWeight: "bold", fontSize: { xs: '0.9rem', sm: '1rem' } }}>
+                        <Box display="flex" alignItems="center" flexWrap="nowrap" justifyContent="flex-end" gap={1}>
+                            <Typography variant="body1" sx={{ fontWeight: "bold", fontSize: { xs: '0.9rem', sm: '1rem' }, whiteSpace: "nowrap" }}>
                                 {user.nickname}
                             </Typography>
-                            <Button color="inherit" onClick={() => setShowLogoutDialog(true)} size="small" startIcon={<LogoutIcon />}>
-                                {window.innerWidth > 600 ? "Logout" : ""}
+                            <Button color="inherit" onClick={() => setShowLogoutDialog(true)} size="small" startIcon={<LogoutIcon />} sx={{ whiteSpace: "nowrap", minWidth: "auto", px: { xs: 1, sm: 2 } }}>
+                                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline-block' } }}>Logout</Box>
                             </Button>
                         </Box>
                     ) : null}

@@ -51,10 +51,10 @@ export const lightTheme = createTheme({
         MuiAppBar: {
             styleOverrides: {
                 root: {
-                    backgroundColor: "#f8fafd",
-                    color: "#1f1f1f",
-                    boxShadow: "none",
-                    borderBottom: "1px solid #e1e2e8",
+                    backgroundColor: "#0b57d0", // primary color
+                    color: "#ffffff",
+                    boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+                    borderBottom: "none",
                 },
             },
         },
@@ -127,10 +127,10 @@ export const darkTheme = createTheme({
         MuiAppBar: {
             styleOverrides: {
                 root: {
-                    backgroundColor: "#131314",
+                    backgroundColor: "#004a77", // primary container dark
                     color: "#e3e3e3",
-                    boxShadow: "none",
-                    borderBottom: "1px solid #444746",
+                    boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.4)",
+                    borderBottom: "none",
                     backgroundImage: "none",
                 },
             },

@@ -201,7 +201,7 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage }) => {
                             if (isBulkMode) setSelectedDates([]);
                         }}
                         startIcon={isBulkMode ? <CancelOutlinedIcon /> : <CheckBoxOutlinedIcon />}
-                        sx={{ flex: 1, width: { xs: '100%', sm: 'auto' } }}
+                        sx={{ flex: 1, width: { xs: '100%', sm: 'auto' }, whiteSpace: 'nowrap' }}
                     >
                         {isBulkMode ? "Annulla" : "Selezione Multipla"}
                     </Button>
@@ -211,7 +211,7 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage }) => {
                         color="inherit"
                         onClick={() => setDarkMode(!darkMode)}
                         startIcon={darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-                        sx={{ flex: 1, width: { xs: '100%', sm: 'auto' } }}
+                        sx={{ flex: 1, width: { xs: '100%', sm: 'auto' }, whiteSpace: 'nowrap' }}
                     >
                         {darkMode ? "Chiaro" : "Scuro"}
                     </Button>
