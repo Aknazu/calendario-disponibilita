@@ -73,9 +73,12 @@ function App() {
             <CssBaseline />
             <AppBar position="static" elevation={2} style={{ borderRadius: "20px" }}>
                 <Toolbar sx={{ flexWrap: "wrap", justifyContent: "space-between", py: { xs: 1, sm: 0 } }}>
-                    <Typography variant="h6" sx={{ flexGrow: { xs: 0, sm: 1 }, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
-                        Calendario Disponibilità
-                    </Typography>
+                    <Box display="flex" alignItems="center" sx={{ flexGrow: { xs: 0, sm: 1 } }}>
+                        <img src={process.env.PUBLIC_URL + '/logo512.png'} alt="Logo" style={{ width: '40px', height: '40px', marginRight: '10px', borderRadius: '8px' }} />
+                        <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+                            Calendario Disponibilità
+                        </Typography>
+                    </Box>
                     {user ? (
                         <Box display="flex" alignItems="center" flexWrap="nowrap" justifyContent="flex-end" gap={1}>
                             <Typography variant="body1" sx={{ fontWeight: "bold", fontSize: { xs: '0.9rem', sm: '1rem' }, whiteSpace: "nowrap" }}>
