@@ -4,13 +4,18 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { getEvents, addEvent, deleteEvent, updateEvent } from "../firestoreService";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, MenuItem, Box, Typography } from "@mui/material";
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
+import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
+import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import itLocale from '@fullcalendar/core/locales/it';
 
-const Calendar = ({ user, isBulkMode }) => {
+const Calendar = ({ user, darkMode, setDarkMode }) => {
     const [events, setEvents] = useState([]);
     const [open, setOpen] = useState(false);
+    const [isBulkMode, setIsBulkMode] = useState(false);
     const [selectedDates, setSelectedDates] = useState([]);
     const [existingEvent, setExistingEvent] = useState(null);
     const [eventType, setEventType] = useState("");
@@ -153,18 +158,47 @@ const Calendar = ({ user, isBulkMode }) => {
                     </Button>
                 </Box>
             )}
-            <Box display="flex" justifyContent="center" gap={3} mb={2} flexWrap="wrap">
-                <Box display="flex" alignItems="center" gap={1}>
-                    <Box width={14} height={14} bgcolor="#34A853" borderRadius="50%" />
-                    <Typography variant="body2">Disponibile</Typography>
+            <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems="center" mb={2} mt={1} gap={2}>
+                {/* Legenda Colori */}
+                <Box display="flex" gap={2} flexWrap="wrap" justifyContent="center">
+                    <Box display="flex" alignItems="center" gap={1}>
+                        <Box width={14} height={14} bgcolor="#34A853" borderRadius="50%" />
+                        <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>Disponibile</Typography>
+                    </Box>
+                    <Box display="flex" alignItems="center" gap={1}>
+                        <Box width={14} height={14} bgcolor="#F4B400" borderRadius="50%" />
+                        <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>Limitata</Typography>
+                    </Box>
+                    <Box display="flex" alignItems="center" gap={1}>
+                        <Box width={14} height={14} bgcolor="#EA4335" borderRadius="50%" />
+                        <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>Forse</Typography>
+                    </Box>
                 </Box>
-                <Box display="flex" alignItems="center" gap={1}>
-                    <Box width={14} height={14} bgcolor="#F4B400" borderRadius="50%" />
-                    <Typography variant="body2">Disponibilità Limitata</Typography>
-                </Box>
-                <Box display="flex" alignItems="center" gap={1}>
-                    <Box width={14} height={14} bgcolor="#EA4335" borderRadius="50%" />
-                    <Typography variant="body2">Forse</Typography>
+
+                {/* Bottoni Azioni (Selezione & Dark Mode) */}
+                <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} alignItems="center" gap={2}>
+                    <Button
+                        variant={isBulkMode ? "contained" : "outlined"}
+                        color={isBulkMode ? "secondary" : "primary"}
+                        onClick={() => {
+                            setIsBulkMode(!isBulkMode);
+                            if (isBulkMode) setSelectedDates([]);
+                        }}
+                        startIcon={isBulkMode ? <CancelOutlinedIcon /> : <CheckBoxOutlinedIcon />}
+                        fullWidth
+                    >
+                        {isBulkMode ? "Annulla Selezione" : "Selezione Multipla"}
+                    </Button>
+
+                    <Button
+                        variant="outlined"
+                        color="inherit"
+                        onClick={() => setDarkMode(!darkMode)}
+                        startIcon={darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+                        fullWidth
+                    >
+                        {darkMode ? "Tema Chiaro" : "Tema Scuro"}
+                    </Button>
                 </Box>
             </Box>
             <FullCalendar

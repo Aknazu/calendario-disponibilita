@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Calendar from "./components/Calendar";
 import Auth from "./components/Auth";
-import { CssBaseline, ThemeProvider, Container, Typography, AppBar, Toolbar, Button, Dialog, DialogActions, DialogContent, DialogTitle, Box, TextField, IconButton } from "@mui/material";
+import { CssBaseline, ThemeProvider, Container, Typography, AppBar, Toolbar, Button, Dialog, DialogActions, DialogContent, DialogTitle, Box, TextField } from "@mui/material";
 import LogoutIcon from '@mui/icons-material/Logout';
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { addUserToFirestore, getUserNickname, updateUserNickname } from "./firestoreService";
@@ -18,7 +16,6 @@ function App() {
     const [error, setError] = useState(null);
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
-    const [isBulkMode, setIsBulkMode] = useState(false);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -71,18 +68,6 @@ function App() {
                     </Typography>
                     {user ? (
                         <Box display="flex" alignItems="center">
-                            <Button
-                                color={isBulkMode ? "secondary" : "inherit"}
-                                variant={isBulkMode ? "contained" : "text"}
-                                onClick={() => setIsBulkMode(!isBulkMode)}
-                                size="small"
-                                style={{ marginRight: "15px", borderRadius: "20px" }}
-                            >
-                                {isBulkMode ? "Annulla Selez." : "Selezione Multipla"}
-                            </Button>
-                            <IconButton color="inherit" onClick={() => setDarkMode(!darkMode)} style={{ marginRight: "15px" }}>
-                                {darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-                            </IconButton>
                             <Typography variant="body1" style={{ marginRight: "15px", fontWeight: "bold" }}>
                                 {user.nickname}
                             </Typography>
@@ -95,7 +80,7 @@ function App() {
             </AppBar>
             <Container maxWidth="xl" style={{ padding: "10px", marginTop: "10px" }}>
                 {user ? (
-                    <Calendar user={user} isBulkMode={isBulkMode} />
+                    <Calendar user={user} darkMode={darkMode} setDarkMode={setDarkMode} />
                 ) : (
                     <Auth setUser={setUser} setError={setError} setShowNicknameDialog={setShowNicknameDialog} />
                 )}
