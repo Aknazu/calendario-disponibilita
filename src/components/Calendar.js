@@ -12,7 +12,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import itLocale from '@fullcalendar/core/locales/it';
 
-const Calendar = ({ user, darkMode, setDarkMode }) => {
+const Calendar = ({ user, darkMode, setDarkMode, showMessage }) => {
     const [events, setEvents] = useState([]);
     const [open, setOpen] = useState(false);
     const [isBulkMode, setIsBulkMode] = useState(false);
@@ -128,9 +128,10 @@ const Calendar = ({ user, darkMode, setDarkMode }) => {
             }
             fetchEvents();
             setOpen(false);
+            showMessage(existingEvent ? "Evento aggiornato!" : "Eventi salvati con successo!", "success");
         } catch (error) {
             console.error("handleEventSelection error:", error.message);
-            alert(error.message);
+            showMessage(error.message, "error");
         }
     };
 
@@ -139,9 +140,10 @@ const Calendar = ({ user, darkMode, setDarkMode }) => {
             try {
                 await deleteEvent(existingEvent.id, user.uid);
                 fetchEvents();
+                showMessage("Evento eliminato con successo", "info");
             } catch (error) {
                 console.error(error.message);
-                alert("Non sei autorizzato a cancellare questo evento.");
+                showMessage("Non sei autorizzato a cancellare questo evento.", "error");
             }
         }
         setOpen(false);
@@ -182,7 +184,7 @@ const Calendar = ({ user, darkMode, setDarkMode }) => {
                 </Box>
 
                 {/* Bottoni Azioni (Selezione & Dark Mode) */}
-                <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} alignItems="center" gap={2}>
+                <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} alignItems="center" gap={2} mt={{ xs: 2, md: 0 }} width={{ xs: '100%', md: 'auto' }}>
                     <Button
                         variant={isBulkMode ? "contained" : "outlined"}
                         color={isBulkMode ? "secondary" : "primary"}
@@ -191,9 +193,9 @@ const Calendar = ({ user, darkMode, setDarkMode }) => {
                             if (isBulkMode) setSelectedDates([]);
                         }}
                         startIcon={isBulkMode ? <CancelOutlinedIcon /> : <CheckBoxOutlinedIcon />}
-                        fullWidth
+                        sx={{ flex: 1, width: { xs: '100%', sm: 'auto' } }}
                     >
-                        {isBulkMode ? "Annulla Selezione" : "Selezione Multipla"}
+                        {isBulkMode ? "Annulla" : "Selezione Multipla"}
                     </Button>
 
                     <Button
@@ -201,9 +203,9 @@ const Calendar = ({ user, darkMode, setDarkMode }) => {
                         color="inherit"
                         onClick={() => setDarkMode(!darkMode)}
                         startIcon={darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-                        fullWidth
+                        sx={{ flex: 1, width: { xs: '100%', sm: 'auto' } }}
                     >
-                        {darkMode ? "Tema Chiaro" : "Tema Scuro"}
+                        {darkMode ? "Chiaro" : "Scuro"}
                     </Button>
                 </Box>
             </Box>

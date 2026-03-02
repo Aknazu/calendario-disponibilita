@@ -5,7 +5,7 @@ import { auth } from "../firebaseConfig";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { addUserToFirestore, getUserNickname } from "../firestoreService";
 
-const Auth = ({ setUser, setError, setShowNicknameDialog }) => {
+const Auth = ({ setUser, showMessage, setShowNicknameDialog }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [nickname, setNickname] = useState("");
@@ -16,9 +16,9 @@ const Auth = ({ setUser, setError, setShowNicknameDialog }) => {
             await signInWithEmailAndPassword(auth, email, password);
         } catch (error) {
             if (error.code === "auth/invalid-credential") {
-                setError("Credenziali errate. Se hai effettuato la registrazione con Google, prova ad accedere con quell'opzione.");
+                showMessage("Credenziali errate. Se hai effettuato la registrazione con Google, prova ad accedere con quell'opzione.", "error");
             } else {
-                setError("Errore durante il login.");
+                showMessage("Errore durante il login.", "error");
             }
         }
     };
@@ -26,7 +26,7 @@ const Auth = ({ setUser, setError, setShowNicknameDialog }) => {
     const handleRegister = async () => {
         try {
             if (!nickname) {
-                setError("Il nickname è obbligatorio.");
+                showMessage("Il nickname è obbligatorio.", "warning");
                 return;
             }
 
@@ -37,9 +37,9 @@ const Auth = ({ setUser, setError, setShowNicknameDialog }) => {
             setUser({ ...user, nickname });
         } catch (error) {
             if (error.code === "auth/weak-password") {
-                setError("La password è troppo debole. Deve contenere almeno 6 caratteri.");
+                showMessage("La password è troppo debole. Deve contenere almeno 6 caratteri.", "warning");
             } else {
-                setError("Errore durante la registrazione.");
+                showMessage("Errore durante la registrazione.", "error");
             }
         }
     };
@@ -62,7 +62,7 @@ const Auth = ({ setUser, setError, setShowNicknameDialog }) => {
                 setShowNicknameDialog(true);
             }
         } catch (error) {
-            setError("Errore nel login con Google.");
+            showMessage("Errore nel login con Google.", "error");
         }
     };
 

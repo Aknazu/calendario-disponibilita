@@ -46,10 +46,18 @@ body.dark-mode .fc-theme-standard .fc-scrollgrid .fc-col-header-cell {
   color: #ffffff;
 }
 
-/* Correzione bordi del calendario - Stile Google Calendar */
+/* Correzione bordi del calendario - Stile Google Calendar M3 */
 .fc {
   font-family: "Roboto", Arial, sans-serif;
-  background-color: transparent;
+  background-color: #ffffff;
+  border-radius: 24px;
+  padding: 16px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+body.dark-mode .fc {
+  background-color: #1e1f20;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.2);
 }
 
 .fc-theme-standard td,
@@ -121,27 +129,27 @@ body.dark-mode .fc .fc-col-header-cell-cushion {
 }
 
 .fc .fc-button-active {
-  background-color: #e8f0fe !important;
-  color: #1a73e8 !important;
-  border-color: #e8f0fe !important;
+  background-color: #d3e3fd !important;
+  color: #0b57d0 !important;
+  border-color: #d3e3fd !important;
 }
 
 body.dark-mode .fc .fc-button-primary {
-  background-color: #202124;
-  color: #e8eaed;
-  border-color: #5f6368;
+  background-color: #1e1f20;
+  color: #e3e3e3;
+  border-color: #444746;
 }
 
 body.dark-mode .fc .fc-button-primary:hover {
   background-color: #303134;
-  color: #e8eaed;
-  border-color: #5f6368;
+  color: #e3e3e3;
+  border-color: #444746;
 }
 
 body.dark-mode .fc .fc-button-active {
-  background-color: #8ab4f8 !important;
-  color: #202124 !important;
-  border-color: #8ab4f8 !important;
+  background-color: #004a77 !important;
+  color: #a8c7fa !important;
+  border-color: #004a77 !important;
 }
 
 /* Adattamento mobile */
