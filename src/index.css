@@ -46,39 +46,145 @@ body.dark-mode .fc-theme-standard .fc-scrollgrid .fc-col-header-cell {
   color: #ffffff;
 }
 
-/* Correzione bordi del calendario */
+/* Correzione bordi del calendario - Stile Google Calendar */
 .fc {
-  border-radius: 20px;
-  overflow: hidden;
-  border: 1px solid #ccc;
+  font-family: "Roboto", Arial, sans-serif;
+  background-color: transparent;
 }
 
-.fc .fc-daygrid-day {
-  border: 1px solid #ddd;
-  border-radius: 5px;
+.fc-theme-standard td,
+.fc-theme-standard th {
+  border-color: #dadce0;
 }
 
-.fc .fc-scrollgrid,
-.fc .fc-scrollgrid-sync-table {
-  border-radius: 20px;
-  overflow: hidden;
+body.dark-mode .fc-theme-standard td,
+body.dark-mode .fc-theme-standard th {
+  border-color: #3c4043;
 }
 
-.fc .fc-daygrid-day-frame {
-  border-radius: 5px;
-  overflow: hidden;
+.fc .fc-toolbar-title {
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: #3c4043;
 }
 
-/* Correzione angoli bottoni */
-.fc .fc-toolbar button {
-  border-radius: 6px !important;
-  padding: 8px 12px;
+body.dark-mode .fc .fc-toolbar-title {
+  color: #e8eaed;
 }
 
-.fc .fc-toolbar button:first-child {
-  border-radius: 6px 0 0 6px !important;
+/* Eventi stile Google */
+.fc-daygrid-event {
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 0.8em;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  margin-top: 2px;
 }
 
-.fc .fc-toolbar button:last-child {
-  border-radius: 0 6px 6px 0 !important;
+/* Header della settimana */
+.fc .fc-col-header-cell-cushion {
+  font-weight: 500;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: #70757a;
+  padding: 8px 0;
+}
+
+body.dark-mode .fc .fc-col-header-cell-cushion {
+  color: #9aa0a6;
+}
+
+/* Bottoni stile Material/Google */
+.fc .fc-button-primary {
+  background-color: #ffffff;
+  color: #3c4043;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  text-transform: capitalize;
+  font-weight: 500;
+  box-shadow: none;
+  padding: 6px 16px;
+}
+
+.fc .fc-button-primary:hover {
+  background-color: #f1f3f4;
+  color: #202124;
+  border-color: #dadce0;
+}
+
+.fc .fc-button-primary:disabled {
+  background-color: #ffffff;
+  color: #dadce0;
+  border-color: #dadce0;
+}
+
+.fc .fc-button-active {
+  background-color: #e8f0fe !important;
+  color: #1a73e8 !important;
+  border-color: #e8f0fe !important;
+}
+
+body.dark-mode .fc .fc-button-primary {
+  background-color: #202124;
+  color: #e8eaed;
+  border-color: #5f6368;
+}
+
+body.dark-mode .fc .fc-button-primary:hover {
+  background-color: #303134;
+  color: #e8eaed;
+  border-color: #5f6368;
+}
+
+body.dark-mode .fc .fc-button-active {
+  background-color: #8ab4f8 !important;
+  color: #202124 !important;
+  border-color: #8ab4f8 !important;
+}
+
+/* Adattamento mobile */
+@media (max-width: 600px) {
+  .fc .fc-toolbar {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .fc .fc-toolbar-title {
+    font-size: 1.25rem;
+  }
+
+  .fc .fc-button-primary {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Bulk Mode Checkboxes */
+.bulk-mode-active .fc-daygrid-day-top {
+  position: relative;
+}
+
+.bulk-mode-active .fc-daygrid-day-top::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #dadce0;
+  border-radius: 4px;
+  background-color: transparent;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.bulk-selected .fc-daygrid-day-top::before {
+  background-color: #1a73e8;
+  border-color: #1a73e8;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>');
+  background-size: 14px;
+  background-position: center;
+  background-repeat: no-repeat;
 }
