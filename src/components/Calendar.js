@@ -3,7 +3,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { getEvents, addEvent, deleteEvent, updateEvent } from "../firestoreService";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, MenuItem } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, MenuItem, Box, Typography } from "@mui/material";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import itLocale from '@fullcalendar/core/locales/it';
@@ -25,9 +25,9 @@ const Calendar = ({ user }) => {
         const eventList = await getEvents();
         setEvents(eventList.map(event => ({
             id: event.id,
-            title: `${event.nickname}: ${event.eventType === "Disponibilità Limitata" ? "Disp. limitata" : event.eventType}`,
+            title: event.nickname,
             start: event.date,
-            color: event.eventType === "Disponibile" ? "#1A73E8" : event.eventType === "Disponibilità Limitata" ? "#F4B400" : "#EA4335",
+            color: event.eventType === "Disponibile" ? "#34A853" : event.eventType === "Disponibilità Limitata" ? "#F4B400" : "#EA4335",
             userId: event.userId
         })));
     };
@@ -90,6 +90,20 @@ const Calendar = ({ user }) => {
 
     return (
         <div>
+            <Box display="flex" justifyContent="center" gap={3} mb={2} mt={1} flexWrap="wrap">
+                <Box display="flex" alignItems="center" gap={1}>
+                    <Box width={14} height={14} bgcolor="#34A853" borderRadius="50%" />
+                    <Typography variant="body2">Disponibile</Typography>
+                </Box>
+                <Box display="flex" alignItems="center" gap={1}>
+                    <Box width={14} height={14} bgcolor="#F4B400" borderRadius="50%" />
+                    <Typography variant="body2">Disponibilità Limitata</Typography>
+                </Box>
+                <Box display="flex" alignItems="center" gap={1}>
+                    <Box width={14} height={14} bgcolor="#EA4335" borderRadius="50%" />
+                    <Typography variant="body2">Forse</Typography>
+                </Box>
+            </Box>
             <FullCalendar
                 plugins={[dayGridPlugin, interactionPlugin]}
                 initialView="dayGridMonth"
