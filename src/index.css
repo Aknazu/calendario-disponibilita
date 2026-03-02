@@ -52,11 +52,13 @@ body.dark-mode .fc-theme-standard .fc-scrollgrid .fc-col-header-cell {
   background-color: transparent;
 }
 
-.fc-theme-standard td, .fc-theme-standard th {
+.fc-theme-standard td,
+.fc-theme-standard th {
   border-color: #dadce0;
 }
 
-body.dark-mode .fc-theme-standard td, body.dark-mode .fc-theme-standard th {
+body.dark-mode .fc-theme-standard td,
+body.dark-mode .fc-theme-standard th {
   border-color: #3c4043;
 }
 
@@ -148,11 +150,41 @@ body.dark-mode .fc .fc-button-active {
     flex-direction: column;
     gap: 10px;
   }
+
   .fc .fc-toolbar-title {
     font-size: 1.25rem;
   }
+
   .fc .fc-button-primary {
     padding: 4px 8px;
     font-size: 0.8rem;
   }
+}
+
+/* Bulk Mode Checkboxes */
+.bulk-mode-active .fc-daygrid-day-top {
+  position: relative;
+}
+
+.bulk-mode-active .fc-daygrid-day-top::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #dadce0;
+  border-radius: 4px;
+  background-color: transparent;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.bulk-selected .fc-daygrid-day-top::before {
+  background-color: #1a73e8;
+  border-color: #1a73e8;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>');
+  background-size: 14px;
+  background-position: center;
+  background-repeat: no-repeat;
 }

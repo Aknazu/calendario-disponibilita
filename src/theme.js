@@ -21,9 +21,17 @@ export const lightTheme = createTheme({
         MuiButton: {
             styleOverrides: {
                 root: {
-                    borderRadius: 4,
+                    borderRadius: 24,
+                    padding: "8px 16px",
                 },
             },
+        },
+        MuiDialog: {
+            styleOverrides: {
+                paper: {
+                    borderRadius: 20,
+                }
+            }
         },
         MuiAppBar: {
             styleOverrides: {
@@ -62,9 +70,17 @@ export const darkTheme = createTheme({
         MuiButton: {
             styleOverrides: {
                 root: {
-                    borderRadius: 4,
+                    borderRadius: 24,
+                    padding: "8px 16px",
                 },
             },
+        },
+        MuiDialog: {
+            styleOverrides: {
+                paper: {
+                    borderRadius: 20,
+                }
+            }
         },
         MuiAppBar: {
             styleOverrides: {
