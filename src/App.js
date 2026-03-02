@@ -63,7 +63,7 @@ function App() {
     return (
         <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
             <CssBaseline />
-            <AppBar position="static" style={{ borderRadius: "20px" }}>
+            <AppBar position="sticky" elevation={0}>
                 <Toolbar>
                     <Typography variant="h6" style={{ flexGrow: 1 }}>
                         Calendario Disponibilità
@@ -80,7 +80,7 @@ function App() {
                     ) : null}
                 </Toolbar>
             </AppBar>
-            <Container maxWidth="lg" style={{ padding: "20px" }}>
+            <Container maxWidth="xl" style={{ padding: "10px", marginTop: "10px" }}>
                 {user ? (
                     <Calendar user={user} />
                 ) : (
