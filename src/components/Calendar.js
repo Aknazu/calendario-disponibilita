@@ -85,7 +85,7 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
 
     const handleEventClick = (info) => {
         const eventClicked = events.find(event => event.id === info.event.id);
-        
+
         if (eventClicked && eventClicked.userId !== user.uid) {
             return;
         }
@@ -272,7 +272,7 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                 }}
                 locale={itLocale}
                 dayHeaderContent={(args) => args.text.charAt(0).toUpperCase() + args.text.slice(1)}
-                titleFormat={{ year: 'numeric', month: 'long', day: 'numeric' }}
+                titleFormat={{ year: 'numeric', month: 'long' }}
                 className="fc"
             />
             <Dialog open={open} onClose={() => setOpen(false)}>

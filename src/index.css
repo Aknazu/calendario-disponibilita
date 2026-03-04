@@ -19,7 +19,7 @@ h1 {
   text-align: center;
 }
 
-`` `` ` `` button {
+button {
   display: block;
   width: 100%;
   padding: 10px;
@@ -105,6 +105,7 @@ body.dark-mode .fc-theme-standard .fc-scrollgrid .fc-col-header-cell {
   font-size: 1.5rem;
   font-weight: 400;
   color: var(--fc-button-text-color);
+  text-transform: capitalize;
 }
 
 /* Eventi stile Google arrotondati (stondati) */
