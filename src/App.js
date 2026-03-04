@@ -7,9 +7,10 @@ import StarIcon from '@mui/icons-material/Star';
 import MenuIcon from '@mui/icons-material/Menu';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
+import EditIcon from '@mui/icons-material/Edit';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { addUserToFirestore, getUserNickname, updateUserNickname } from "./firestoreService";
+import { addUserToFirestore, getUserNickname, updateUserNickname, isNicknameTaken } from "./firestoreService";
 
 import { lightTheme, darkTheme } from './theme';
 
@@ -78,9 +79,18 @@ function App() {
             showMessage("Il nickname è obbligatorio.", "warning");
             return;
         }
+
+        // Verifica se il nickname è già in uso da un'altra persona
+        const isTaken = await isNicknameTaken(nickname, user.uid);
+        if (isTaken) {
+            showMessage("Questo nickname è già in uso da un'altra persona.", "error");
+            return;
+        }
+
         await updateUserNickname(user.uid, nickname);
         setUser((prevUser) => ({ ...prevUser, nickname }));
         setShowNicknameDialog(false);
+        showMessage("Nickname aggiornato con successo!", "success");
     };
 
     const handleMasterUnlock = () => {
@@ -132,10 +142,19 @@ function App() {
                                 transformOrigin={{ horizontal: 'right', vertical: 'top' }}
                                 anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                             >
-                                <MenuItem disableRipple sx={{ cursor: 'default', '&:hover': { backgroundColor: 'transparent' } }}>
-                                    <Typography variant="body1" sx={{ fontWeight: "bold", color: "text.primary" }}>
-                                        {user.nickname}
-                                    </Typography>
+                                <MenuItem onClick={() => {
+                                    setNickname(user.nickname);
+                                    setShowNicknameDialog(true);
+                                    handleMenuClose();
+                                }}>
+                                    <ListItemIcon>
+                                        <EditIcon fontSize="small" />
+                                    </ListItemIcon>
+                                    <ListItemText>
+                                        <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                                            {user.nickname} (Modifica)
+                                        </Typography>
+                                    </ListItemText>
                                 </MenuItem>
                                 <Divider />
                                 <MenuItem onClick={() => {
@@ -195,7 +214,10 @@ function App() {
                     <Auth setUser={setUser} showMessage={showMessage} setShowNicknameDialog={setShowNicknameDialog} />
                 )}
             </Container>
-            <Dialog open={showNicknameDialog} onClose={() => { }}>
+            <Dialog
+                open={showNicknameDialog}
+                onClose={() => user && user.nickname !== "Anonimo" && setShowNicknameDialog(false)}
+            >
                 <DialogTitle>Imposta il tuo Nickname</DialogTitle>
                 <DialogContent>
                     <TextField
@@ -208,6 +230,11 @@ function App() {
                     />
                 </DialogContent>
                 <DialogActions>
+                    {user && user.nickname !== "Anonimo" && (
+                        <Button onClick={() => setShowNicknameDialog(false)} color="default">
+                            Annulla
+                        </Button>
+                    )}
                     <Button onClick={handleNicknameUpdate} color="primary" variant="contained">
                         Salva
                     </Button>

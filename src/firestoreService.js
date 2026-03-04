@@ -1,5 +1,5 @@
 import { db } from "./firebaseConfig";
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where, getDoc, setDoc, writeBatch } from "firebase/firestore";
 
 // 🔹 Recupera gli eventi e include il nickname dell'utente
 export const getEvents = async () => {
@@ -82,12 +82,54 @@ export const getUserNickname = async (userId) => {
     }
 };
 
-// 🔹 Aggiorna il nickname dell'utente
+// 🔹 Verifica se il nickname è già in uso da un altro utente
+export const isNicknameTaken = async (nickname, excludeUserId = null) => {
+    try {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("nickname", "==", nickname));
+        const querySnapshot = await getDocs(q);
+
+        // Se non ci sono risultati, il nome è libero
+        if (querySnapshot.empty) return false;
+
+        // Se stiamo escludendo l'utente corrente dalla ricerca
+        // (es. se sta salvando di nuovo il suo stesso nome)
+        if (excludeUserId) {
+            const otherUsers = querySnapshot.docs.filter(doc => doc.id !== excludeUserId);
+            return otherUsers.length > 0;
+        }
+
+        return true;
+    } catch (error) {
+        console.error("Errore nella verifica del nickname:", error);
+        throw error;
+    }
+};
+
+// 🔹 Aggiorna il nickname dell'utente (e tutti i suoi eventi passati/futuri)
 export const updateUserNickname = async (userId, newNickname) => {
     try {
-        await updateDoc(doc(db, "users", userId), { nickname: newNickname });
+        const batch = writeBatch(db);
+
+        // 1. Aggiorna il profilo utente
+        const userRef = doc(db, "users", userId);
+        batch.update(userRef, { nickname: newNickname });
+
+        // 2. Trova tutti gli eventi dell'utente
+        const eventsRef = collection(db, "events");
+        const q = query(eventsRef, where("userId", "==", userId));
+        const querySnapshot = await getDocs(q);
+
+        // 3. Aggiunge l'aggiornamento al batch
+        querySnapshot.forEach((eventDoc) => {
+            batch.update(eventDoc.ref, { nickname: newNickname });
+        });
+
+        // Esegue tutti gli aggiornamenti i un sol colpo
+        await batch.commit();
+
     } catch (error) {
-        console.error("Errore nell'aggiornamento del nickname:", error);
+        console.error("Errore nell'aggiornamento del nickname e degli eventi:", error);
     }
 };
 
