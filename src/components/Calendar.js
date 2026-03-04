@@ -267,7 +267,7 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
         },
         onSwipedUp: () => setSwipeOffset(0),
         onSwipedDown: () => setSwipeOffset(0),
-        preventScrollOnSwipe: true,
+        preventScrollOnSwipe: false,
         trackMouse: false
     });
 
