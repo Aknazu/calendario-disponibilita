@@ -1,37 +1,37 @@
-export const sendTelegramGroupMessage = async (dateStr, masterNickname) => {
-    const botToken = process.env.REACT_APP_TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.REACT_APP_TELEGRAM_CHAT_ID;
+export const sendTelegramGroupMessage = async (formattedDate, masterNickname, availablePlayers) => {
+    // Ora usiamo Make.com (Webhook sicuro) per non esporre il Token di Telegram
+    const webhookUrl = process.env.REACT_APP_MAKE_WEBHOOK_URL;
 
-    if (!botToken || !chatId || botToken === "YOUR_BOT_TOKEN" || chatId === "YOUR_CHAT_ID") {
-        console.warn("Telegram non configurato. Salto invio notifica.");
+    if (!webhookUrl || webhookUrl === "YOUR_MAKE_WEBHOOK_URL") {
+        console.warn("Webhook Make.com non configurato. Salto notifica.");
         return false;
     }
 
-    const message = `🎲 *Nuova Sessione Fissata!*\n\n${masterNickname} ha selezionato la data *${dateStr}* per la prossima sessione. Preparate le schede!`;
-    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-
     try {
-        const response = await fetch(url, {
+        const response = await fetch(webhookUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
+            // Mandiamo a Make solo i dati che ci servono!
+            // Nessuna chiave segreta o password parte dal browser dell'utente
             body: JSON.stringify({
-                chat_id: chatId,
-                text: message,
-                parse_mode: 'Markdown'
+                date: formattedDate,
+                master: masterNickname,
+                players: availablePlayers.join(", ") || "Nessuno (Attenzione!)",
+                origin: window.location.origin
             })
         });
 
         if (!response.ok) {
-            console.error("Errore risposta Telegram:", await response.text());
+            console.error("Errore risposta dal Webhook Make:", await response.text());
             return false;
         }
 
-        console.log("Notifica Telegram inviata con successo al gruppo");
+        console.log("Notifica inviata con successo al Webhook");
         return true;
     } catch (error) {
-        console.error("Errore configurazione fetch a Telegram:", error);
+        console.error("Errore di rete verso Webhook Make:", error);
         return false;
     }
 };

@@ -2,14 +2,13 @@ import React, { useState, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { getEvents, addEvent, deleteEvent, updateEvent, getSessionDays, toggleSessionDay, getUserEmail } from "../firestoreService";
+import { getEvents, addEvent, deleteEvent, updateEvent, getSessionDays, toggleSessionDay } from "../firestoreService";
 import { sendTelegramGroupMessage } from "../telegramService";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, MenuItem, Box, Typography, Divider, IconButton, Tooltip } from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import StarIcon from '@mui/icons-material/Star';
-import emailjs from 'emailjs-com';
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import itLocale from '@fullcalendar/core/locales/it';
@@ -135,55 +134,28 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
         try {
             const isAdded = await toggleSessionDay(dateStr);
             if (isAdded) {
-                showMessage("Giorno sessione impostato! Invio email in corso...", "info");
+                showMessage("Giorno sessione impostato! Invio notifica...", "info");
 
-                // Trova tutti gli utenti che hanno un evento in questa data
-                const usersOnDate = events.filter(e => e.start === dateStr);
-                const uniqueUserIds = [...new Set(usersOnDate.map(e => e.userId))];
+                // Prepara data parlante (es: lunedì 12/05/2026)
+                const dateObj = new Date(dateStr);
+                const formattedDate = new Intl.DateTimeFormat('it-IT', {
+                    weekday: 'long',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                }).format(dateObj);
 
-                let emailsSent = 0;
-                let usersWithoutEmail = 0;
+                // Prepara lista giocatori disponibili o "forse"
+                const availablePlayers = events
+                    .filter(e => e.start === dateStr && (e.color === "#34A853" || e.color === "#F4B400"))
+                    .map(e => e.title);
 
-                for (const uId of uniqueUserIds) {
-                    const email = await getUserEmail(uId);
-                    if (email) {
-                        try {
-                            await emailjs.send(
-                                process.env.REACT_APP_EMAILJS_SERVICE_ID,
-                                process.env.REACT_APP_EMAILJS_TEMPLATE_ID,
-                                {
-                                    to_email: email,
-                                    date: dateStr,
-                                    message: "Il master ha selezionato questa data per la sessione!"
-                                },
-                                process.env.REACT_APP_EMAILJS_PUBLIC_KEY
-                            );
-                            console.log(`Email inviata a ${email} per la data ${dateStr}`);
-                            emailsSent++;
-                        } catch (err) {
-                            console.error("Errore invio email a", email, err);
-                        }
-                    } else {
-                        console.warn(`Nessuna email trovata per l'utente con ID: ${uId}`);
-                        usersWithoutEmail++;
-                    }
-                }
+                const telegramSent = await sendTelegramGroupMessage(formattedDate, user.nickname, availablePlayers);
 
-                let telegramSent = false;
-                if (emailsSent > 0 || usersWithoutEmail > 0) {
-                    telegramSent = await sendTelegramGroupMessage(dateStr, user.nickname);
-                }
-
-                let messageText = `Giorno sessione confermato. ${emailsSent} email inviate!`;
-                if (usersWithoutEmail > 0) messageText += ` (${usersWithoutEmail} senza email).`;
-                if (telegramSent) messageText += ` Notifica Telegram inviata nel gruppo!`;
-
-                if (emailsSent > 0) {
-                    showMessage(messageText, "success");
-                } else if (usersWithoutEmail > 0) {
-                    showMessage(`Giorno confermato. Delle notifiche via email sono fallite (utenti senza indirizzo registrato). ${telegramSent ? "Messaggio Telegram inviato!" : ""}`, "warning");
+                if (telegramSent) {
+                    showMessage("Giorno sessione confermato! Notifica Telegram inviata nel gruppo.", "success");
                 } else {
-                    showMessage(`Giorno sessione impostato, ma non ci sono utenti per questo giorno. ${telegramSent ? "Messaggio Telegram inviato!" : ""}`, "info");
+                    showMessage("Giorno sessione impostato.", "success");
                 }
             } else {
                 showMessage("Giorno sessione rimosso.", "info");
@@ -204,7 +176,6 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                     const eventRef = collection(db, "events");
                     const q = query(eventRef, where("userId", "==", user.uid), where("date", "==", dateStr));
                     const querySnapshot = await getDocs(q);
-
                     if (querySnapshot.empty) {
                         await addEvent(user.uid, dateStr, eventType, user.nickname);
                     }
@@ -219,11 +190,9 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                 const eventRef = collection(db, "events");
                 const q = query(eventRef, where("userId", "==", user.uid), where("date", "==", dateStr));
                 const querySnapshot = await getDocs(q);
-
                 if (!querySnapshot.empty) {
                     throw new Error("Hai già un evento per questa data.");
                 }
-
                 await addEvent(user.uid, dateStr, eventType, user.nickname);
             }
             fetchEvents();
