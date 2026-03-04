@@ -87,8 +87,15 @@ body.dark-mode .fc .fc-toolbar-title {
   font-size: 0.8em;
   font-weight: 500;
   border: none;
-  cursor: pointer;
   margin-top: 2px;
+}
+
+.clickable-event {
+  cursor: pointer !important;
+}
+
+.not-clickable-event {
+  cursor: default !important;
 }
 
 /* Header della settimana */

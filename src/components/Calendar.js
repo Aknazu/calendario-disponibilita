@@ -76,7 +76,20 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
         setOpen(true);
     };
 
+    const eventClassNames = (arg) => {
+        if (arg.event.extendedProps.userId !== user.uid) {
+            return 'not-clickable-event';
+        }
+        return 'clickable-event';
+    };
+
     const handleEventClick = (info) => {
+        const eventClicked = events.find(event => event.id === info.event.id);
+        
+        if (eventClicked && eventClicked.userId !== user.uid) {
+            return;
+        }
+
         if (isBulkMode) {
             setSelectedDates(prev => prev.includes(info.event.startStr)
                 ? prev.filter(d => d !== info.event.startStr)
@@ -84,7 +97,6 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
             return;
         }
 
-        const eventClicked = events.find(event => event.id === info.event.id);
         if (eventClicked) {
             setSelectedDates([eventClicked.start]);
             setExistingEvent(eventClicked);
@@ -243,6 +255,7 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                 initialView="dayGridMonth"
                 events={events} // Pass fresh events when component renders to force dayCellClassNames execution
                 dayCellClassNames={dayCellClassNames}
+                eventClassNames={eventClassNames}
                 dateClick={handleDateClick}
                 eventClick={handleEventClick}
                 height="auto"
