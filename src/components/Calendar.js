@@ -194,9 +194,13 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                     const querySnapshot = await getDocs(q);
                     if (querySnapshot.empty) {
                         await addEvent(user.uid, dateStr, eventType, user.nickname);
+                    } else {
+                        const existingDoc = querySnapshot.docs[0];
+                        await updateEvent(existingDoc.id, eventType);
                     }
                 }
                 setSelectedDates([]);
+                setIsBulkMode(false);
             } else if (existingEvent && existingEvent.userId === user.uid) {
                 // Modifica evento singolo esistente
                 await updateEvent(existingEvent.id, eventType);
