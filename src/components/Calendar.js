@@ -12,6 +12,7 @@ import StarIcon from '@mui/icons-material/Star';
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import itLocale from '@fullcalendar/core/locales/it';
+import { useSwipeable } from 'react-swipeable';
 
 const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
     const [events, setEvents] = useState([]);
@@ -22,6 +23,9 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
     const [existingEvent, setExistingEvent] = useState(null);
     const [eventType, setEventType] = useState("");
     const [isProcessingSession, setIsProcessingSession] = useState(false);
+    const calendarRef = React.useRef(null);
+    const [swipeOffset, setSwipeOffset] = useState(0);
+    const [isAnimating, setIsAnimating] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -230,9 +234,46 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
         setOpen(false);
     };
 
+    const handlers = useSwipeable({
+        onSwiping: (eventData) => {
+            // Muovi il calendario con il dito, solo in orizzontale
+            if (eventData.dir === "Left" || eventData.dir === "Right") {
+                setSwipeOffset(eventData.deltaX);
+            }
+        },
+        onSwipedLeft: () => {
+            setSwipeOffset(-window.innerWidth * 0.3); // "Scivola un po' oltre"
+            setIsAnimating(true);
+            setTimeout(() => {
+                if (calendarRef.current) calendarRef.current.getApi().next();
+                setSwipeOffset(50); // Mettilo "fuori" a destra per ricomparire 
+                requestAnimationFrame(() => {
+                    setSwipeOffset(0); // Scivola indietro dolcemente
+                    setTimeout(() => setIsAnimating(false), 300);
+                });
+            }, 150);
+        },
+        onSwipedRight: () => {
+            setSwipeOffset(window.innerWidth * 0.3);
+            setIsAnimating(true);
+            setTimeout(() => {
+                if (calendarRef.current) calendarRef.current.getApi().prev();
+                setSwipeOffset(-50);
+                requestAnimationFrame(() => {
+                    setSwipeOffset(0);
+                    setTimeout(() => setIsAnimating(false), 300);
+                });
+            }, 150);
+        },
+        onSwipedUp: () => setSwipeOffset(0),
+        onSwipedDown: () => setSwipeOffset(0),
+        preventScrollOnSwipe: true,
+        trackMouse: false
+    });
+
     return (
-        <div>
-            <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems="center" mb={2} mt={1} gap={2}>
+        <div {...handlers} style={{ overflow: "hidden" }}>
+            <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="center" alignItems="center" mb={2} mt={1} gap={2}>
                 {/* Legenda Colori */}
                 <Box display="flex" gap={2} flexWrap="wrap" justifyContent="center">
                     <Box display="flex" alignItems="center" gap={1}>
@@ -250,31 +291,40 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                 </Box>
 
             </Box>
-            <FullCalendar
-                plugins={[dayGridPlugin, interactionPlugin]}
-                initialView="dayGridMonth"
-                events={events} // Pass fresh events when component renders to force dayCellClassNames execution
-                dayCellClassNames={dayCellClassNames}
-                eventClassNames={eventClassNames}
-                dateClick={handleDateClick}
-                eventClick={handleEventClick}
-                height="auto"
-                headerToolbar={{
-                    left: 'prev,next',
-                    center: 'title',
-                    right: 'today,dayGridMonth,dayGridWeek,dayGridDay'
+            <div
+                style={{
+                    transform: `translateX(${swipeOffset}px)`,
+                    transition: isAnimating ? "transform 0.3s ease-out, opacity 0.3s ease-out" : "none",
+                    opacity: isAnimating && Math.abs(swipeOffset) > 20 ? 0.3 : 1
                 }}
-                buttonText={{
-                    today: 'Oggi',
-                    month: 'Mese',
-                    week: 'Settimana',
-                    day: 'Giorno'
-                }}
-                locale={itLocale}
-                dayHeaderContent={(args) => args.text.charAt(0).toUpperCase() + args.text.slice(1)}
-                titleFormat={{ year: 'numeric', month: 'long' }}
-                className="fc"
-            />
+            >
+                <FullCalendar
+                    ref={calendarRef}
+                    plugins={[dayGridPlugin, interactionPlugin]}
+                    initialView="dayGridMonth"
+                    events={events}
+                    dayCellClassNames={dayCellClassNames}
+                    eventClassNames={eventClassNames}
+                    dateClick={handleDateClick}
+                    eventClick={handleEventClick}
+                    height="auto"
+                    headerToolbar={{
+                        left: 'prev,next',
+                        center: 'title',
+                        right: 'today,dayGridMonth,dayGridWeek,dayGridDay'
+                    }}
+                    buttonText={{
+                        today: 'Oggi',
+                        month: 'Mese',
+                        week: 'Settimana',
+                        day: 'Giorno'
+                    }}
+                    locale={itLocale}
+                    dayHeaderContent={(args) => args.text.charAt(0).toUpperCase() + args.text.slice(1)}
+                    titleFormat={{ year: 'numeric', month: 'long' }}
+                    className="fc"
+                />
+            </div>
             <Dialog open={open} onClose={() => setOpen(false)}>
                 <DialogTitle>
                     {existingEvent
