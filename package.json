@@ -4,6 +4,7 @@
   "homepage": "https://aknazu.github.io/calendario-disponibilita",
   "private": true,
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@fullcalendar/daygrid": "^6.1.15",
@@ -17,6 +18,7 @@
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^13.5.0",
     "dayjs": "^1.11.13",
+    "emailjs-com": "^3.2.0",
     "firebase": "^11.6.0",
     "gh-pages": "^6.3.0",
     "react": "^19.1.0",

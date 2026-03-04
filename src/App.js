@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import Calendar from "./components/Calendar";
 import Auth from "./components/Auth";
-import { CssBaseline, ThemeProvider, Container, Typography, AppBar, Toolbar, Button, Dialog, DialogActions, DialogContent, DialogTitle, Box, TextField, Snackbar, Alert } from "@mui/material";
+import { CssBaseline, ThemeProvider, Container, Typography, AppBar, Toolbar, Button, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Box, TextField, Snackbar, Alert } from "@mui/material";
 import LogoutIcon from '@mui/icons-material/Logout';
+import StarIcon from '@mui/icons-material/Star';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { addUserToFirestore, getUserNickname, updateUserNickname } from "./firestoreService";
@@ -16,6 +17,11 @@ function App() {
     const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
+
+    // Master Mode
+    const [isMaster, setIsMaster] = useState(false);
+    const [showMasterDialog, setShowMasterDialog] = useState(false);
+    const [masterPassword, setMasterPassword] = useState("");
 
     const showMessage = (message, severity = "info") => {
         setSnackbar({ open: true, message, severity });
@@ -32,6 +38,12 @@ function App() {
                 let savedNickname = await getUserNickname(currentUser.uid);
                 if (!savedNickname) {
                     savedNickname = "Anonimo";
+                }
+
+                // Assicurati che l'email sia aggiornata nel DB in caso di vecchi account
+                if (currentUser.email) {
+                    await addUserToFirestore(currentUser.uid, savedNickname, currentUser.email);
+                } else {
                     await addUserToFirestore(currentUser.uid, savedNickname);
                 }
 
@@ -68,6 +80,17 @@ function App() {
         setShowNicknameDialog(false);
     };
 
+    const handleMasterUnlock = () => {
+        if (masterPassword === process.env.REACT_APP_MASTER_PASSWORD) {
+            setIsMaster(true);
+            setShowMasterDialog(false);
+            setMasterPassword("");
+            showMessage("Master Mode attivata!", "success");
+        } else {
+            showMessage("Password errata.", "error");
+        }
+    };
+
     return (
         <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
             <CssBaseline />
@@ -84,6 +107,15 @@ function App() {
                             <Typography variant="body1" sx={{ fontWeight: "bold", fontSize: { xs: '0.9rem', sm: '1rem' }, whiteSpace: "nowrap" }}>
                                 {user.nickname}
                             </Typography>
+                            {isMaster ? (
+                                <Box display="flex" alignItems="center" bgcolor="#FFF8E1" borderRadius="50%" p={0.5} ml={1} title="Master Mode Attiva">
+                                    <StarIcon sx={{ color: '#F4B400', fontSize: '1.2rem' }} />
+                                </Box>
+                            ) : (
+                                <IconButton color="inherit" onClick={() => setShowMasterDialog(true)} size="small" sx={{ ml: 1, width: 40, height: 40, p: 0 }} title="Sblocca Master Mode">
+                                    <img src={process.env.PUBLIC_URL + '/master-icon.png'} alt="Master Mode" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '8px' }} />
+                                </IconButton>
+                            )}
                             <Button color="inherit" onClick={() => setShowLogoutDialog(true)} size="small" startIcon={<LogoutIcon />} sx={{ whiteSpace: "nowrap", minWidth: "auto", px: { xs: 1, sm: 2 } }}>
                                 <Box component="span" sx={{ display: { xs: 'none', sm: 'inline-block' } }}>Logout</Box>
                             </Button>
@@ -93,7 +125,7 @@ function App() {
             </AppBar>
             <Container maxWidth="xl" style={{ padding: "10px", marginTop: "10px" }}>
                 {user ? (
-                    <Calendar user={user} darkMode={darkMode} setDarkMode={setDarkMode} showMessage={showMessage} />
+                    <Calendar user={user} darkMode={darkMode} setDarkMode={setDarkMode} showMessage={showMessage} isMaster={isMaster} />
                 ) : (
                     <Auth setUser={setUser} showMessage={showMessage} setShowNicknameDialog={setShowNicknameDialog} />
                 )}
@@ -113,6 +145,29 @@ function App() {
                 <DialogActions>
                     <Button onClick={handleNicknameUpdate} color="primary" variant="contained">
                         Salva
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog open={showMasterDialog} onClose={() => setShowMasterDialog(false)}>
+                <DialogTitle>Sblocca Master Mode</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        label="Password Master"
+                        variant="outlined"
+                        fullWidth
+                        margin="normal"
+                        type="password"
+                        value={masterPassword}
+                        onChange={(e) => setMasterPassword(e.target.value)}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setShowMasterDialog(false)} color="default">
+                        Annulla
+                    </Button>
+                    <Button onClick={handleMasterUnlock} color="primary" variant="contained">
+                        Sblocca
                     </Button>
                 </DialogActions>
             </Dialog>

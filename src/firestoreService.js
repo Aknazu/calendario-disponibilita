@@ -58,10 +58,14 @@ export const updateEvent = async (eventId, eventType) => {
     }
 };
 
-// 🔹 Salva l'utente e il suo nickname in Firestore
-export const addUserToFirestore = async (userId, nickname) => {
+// 🔹 Salva l'utente e il suo nickname (ed email) in Firestore
+export const addUserToFirestore = async (userId, nickname, email = null) => {
     try {
-        await setDoc(doc(db, "users", userId), { nickname }, { merge: true });
+        const userData = { nickname };
+        if (email) {
+            userData.email = email;
+        }
+        await setDoc(doc(db, "users", userId), userData, { merge: true });
     } catch (error) {
         console.error("Errore nel salvataggio dell'utente:", error);
     }
@@ -84,5 +88,46 @@ export const updateUserNickname = async (userId, newNickname) => {
         await updateDoc(doc(db, "users", userId), { nickname: newNickname });
     } catch (error) {
         console.error("Errore nell'aggiornamento del nickname:", error);
+    }
+};
+
+// 🔹 Aggiungi/Rimuovi Giorno Sessione
+export const toggleSessionDay = async (date) => {
+    try {
+        const sessionDoc = await getDoc(doc(db, "sessionDays", date));
+        if (sessionDoc.exists()) {
+            await deleteDoc(doc(db, "sessionDays", date));
+            return false; // Rimosso
+        } else {
+            await setDoc(doc(db, "sessionDays", date), { date });
+            return true; // Aggiunto
+        }
+    } catch (error) {
+        console.error("Errore nel toggle del giorno sessione:", error);
+        throw error;
+    }
+};
+
+// 🔹 Recupera giorni sessione
+export const getSessionDays = async () => {
+    try {
+        const querySnapshot = await getDocs(collection(db, "sessionDays"));
+        return querySnapshot.docs.map(doc => doc.id);
+    } catch (error) {
+        console.error("Errore nel recupero giorni sessione:", error);
+        return [];
+    }
+};
+
+// 🔹 Recupera email utente
+export const getUserEmail = async (userId) => {
+    try {
+        const userDoc = await getDoc(doc(db, "users", userId));
+        // L'email potrebbe non essere salvata in Firestore se non lo abbiamo fatto durante la registrazione
+        // Dobbiamo assicurarci che chi si registra salvi anche l'email
+        return userDoc.exists() ? userDoc.data().email : null;
+    } catch (error) {
+        console.error("Errore nel recupero email:", error);
+        return null;
     }
 };

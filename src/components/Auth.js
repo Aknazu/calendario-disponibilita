@@ -33,7 +33,7 @@ const Auth = ({ setUser, showMessage, setShowNicknameDialog }) => {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            await addUserToFirestore(user.uid, nickname);
+            await addUserToFirestore(user.uid, nickname, user.email);
             setUser({ ...user, nickname });
         } catch (error) {
             if (error.code === "auth/weak-password") {
@@ -53,7 +53,7 @@ const Auth = ({ setUser, showMessage, setShowNicknameDialog }) => {
             let savedNickname = await getUserNickname(user.uid);
             if (!savedNickname) {
                 savedNickname = "Anonimo";
-                await addUserToFirestore(user.uid, savedNickname);
+                await addUserToFirestore(user.uid, savedNickname, user.email);
             }
 
             setUser({ ...user, nickname: savedNickname });

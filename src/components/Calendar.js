@@ -2,30 +2,36 @@ import React, { useState, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { getEvents, addEvent, deleteEvent, updateEvent } from "../firestoreService";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, MenuItem, Box, Typography } from "@mui/material";
+import { getEvents, addEvent, deleteEvent, updateEvent, getSessionDays, toggleSessionDay, getUserEmail } from "../firestoreService";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, MenuItem, Box, Typography, Divider } from "@mui/material";
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
+import StarIcon from '@mui/icons-material/Star';
+import emailjs from 'emailjs-com';
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import itLocale from '@fullcalendar/core/locales/it';
 
-const Calendar = ({ user, darkMode, setDarkMode, showMessage }) => {
+const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
     const [events, setEvents] = useState([]);
+    const [sessionDays, setSessionDays] = useState([]);
     const [open, setOpen] = useState(false);
     const [isBulkMode, setIsBulkMode] = useState(false);
     const [selectedDates, setSelectedDates] = useState([]);
     const [existingEvent, setExistingEvent] = useState(null);
     const [eventType, setEventType] = useState("");
+    const [isProcessingSession, setIsProcessingSession] = useState(false);
 
     useEffect(() => {
         if (user) {
             fetchEvents();
+            fetchSessionDays();
 
             const intervalId = setInterval(() => {
                 fetchEvents();
+                fetchSessionDays();
             }, 30000);
 
             return () => clearInterval(intervalId);
@@ -47,6 +53,11 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage }) => {
             color: event.eventType === "Disponibile" ? "#34A853" : (event.eventType === "Forse" || event.eventType === "Disponibilità Limitata") ? "#F4B400" : "#EA4335",
             userId: event.userId
         })));
+    };
+
+    const fetchSessionDays = async () => {
+        const days = await getSessionDays();
+        setSessionDays(days);
     };
 
     const handleDateClick = (info) => {
@@ -100,6 +111,10 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage }) => {
         const countLimitata = dayEvents.filter(e => e.color === "#F4B400").length;
         const countForse = dayEvents.filter(e => e.color === "#EA4335").length;
 
+        if (sessionDays.includes(formattedDate)) {
+            classes.push('session-day');
+        }
+
         if (countForse === 0) {
             if (countDisponibile >= 4) {
                 classes.push('has-big-crown');
@@ -112,6 +127,65 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage }) => {
         }
 
         return classes.join(' ');
+    };
+
+    const handleToggleSessionDay = async () => {
+        const dateStr = selectedDates[0];
+        setIsProcessingSession(true);
+        try {
+            const isAdded = await toggleSessionDay(dateStr);
+            if (isAdded) {
+                showMessage("Giorno sessione impostato! Invio email in corso...", "info");
+
+                // Trova tutti gli utenti che hanno un evento in questa data
+                const usersOnDate = events.filter(e => e.start === dateStr);
+                const uniqueUserIds = [...new Set(usersOnDate.map(e => e.userId))];
+
+                let emailsSent = 0;
+                let usersWithoutEmail = 0;
+
+                for (const uId of uniqueUserIds) {
+                    const email = await getUserEmail(uId);
+                    if (email) {
+                        try {
+                            await emailjs.send(
+                                process.env.REACT_APP_EMAILJS_SERVICE_ID,
+                                process.env.REACT_APP_EMAILJS_TEMPLATE_ID,
+                                {
+                                    to_email: email,
+                                    date: dateStr,
+                                    message: "Il master ha selezionato questa data per la sessione!"
+                                },
+                                process.env.REACT_APP_EMAILJS_PUBLIC_KEY
+                            );
+                            console.log(`Email inviata a ${email} per la data ${dateStr}`);
+                            emailsSent++;
+                        } catch (err) {
+                            console.error("Errore invio email a", email, err);
+                        }
+                    } else {
+                        console.warn(`Nessuna email trovata per l'utente con ID: ${uId}`);
+                        usersWithoutEmail++;
+                    }
+                }
+
+                if (emailsSent > 0) {
+                    showMessage(`Giorno sessione confermato. ${emailsSent} email di notifica inviate! ${usersWithoutEmail > 0 ? `(${usersWithoutEmail} utenti non avevano un'email registrata)` : ''}`, "success");
+                } else if (usersWithoutEmail > 0) {
+                    showMessage(`Giorno sessione confermato, ma o gli utenti registrati per questo giorno non hanno un'email valida, o c'è un errore nella configurazione.`, "warning");
+                } else {
+                    showMessage("Giorno sessione impostato, ma non ci sono utenti registrati per questo giorno.", "info");
+                }
+            } else {
+                showMessage("Giorno sessione rimosso.", "info");
+            }
+            fetchSessionDays();
+        } catch (error) {
+            showMessage("Errore nell'impostare il giorno sessione.", "error");
+        } finally {
+            setIsProcessingSession(false);
+            setOpen(false);
+        }
     };
 
     const handleEventSelection = async () => {
@@ -273,15 +347,34 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage }) => {
                         <MenuItem value="Assente">Assente</MenuItem>
                     </Select>
                     {existingEvent && (
-                        <Button onClick={handleDeleteEvent} color="error">
+                        <Button onClick={handleDeleteEvent} color="error" sx={{ mt: 1 }}>
                             Elimina Evento
                         </Button>
+                    )}
+
+                    {isMaster && !isBulkMode && (
+                        <>
+                            <Divider sx={{ my: 2 }} />
+                            <Typography variant="subtitle2" color="primary" gutterBottom>
+                                Opzioni Master
+                            </Typography>
+                            <Button
+                                variant={sessionDays.includes(selectedDates[0]) ? "outlined" : "contained"}
+                                color="warning"
+                                fullWidth
+                                onClick={handleToggleSessionDay}
+                                disabled={isProcessingSession}
+                                startIcon={<StarIcon />}
+                            >
+                                {sessionDays.includes(selectedDates[0]) ? "Rimuovi Giorno Sessione" : "Imposta Giorno Sessione"}
+                            </Button>
+                        </>
                     )}
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setOpen(false)} color="default">Annulla</Button>
-                    <Button onClick={handleEventSelection} color="primary">
-                        {existingEvent ? "Aggiorna" : "Aggiungi"}
+                    <Button onClick={handleEventSelection} color="primary" disabled={isProcessingSession}>
+                        {existingEvent ? "Aggiorna Evento" : "Aggiungi Evento"}
                     </Button>
                 </DialogActions>
             </Dialog>
