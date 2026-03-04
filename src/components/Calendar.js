@@ -106,6 +106,9 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage }) => {
             } else if ((countDisponibile + countLimitata) >= 4) {
                 classes.push('has-small-crown');
             }
+        } else {
+            classes.push('has-forse');
+            classes.push('has-forse-icon');
         }
 
         return classes.join(' ');

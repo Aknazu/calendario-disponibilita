@@ -233,6 +233,30 @@ body.dark-mode .has-small-crown .fc-daygrid-day-top::after {
 
 /* Evitare che le corone si sovrappongano alla checkbox magnetica in modalità Bulk */
 .bulk-mode-active.has-big-crown .fc-daygrid-day-top::after,
-.bulk-mode-active.has-small-crown .fc-daygrid-day-top::after {
+.bulk-mode-active.has-small-crown .fc-daygrid-day-top::after,
+.bulk-mode-active.has-forse-icon .fc-daygrid-day-top::after {
   left: 28px;
+}
+
+/* Giorno grigiastro quando c'è almeno un "Forse" / "Assente" */
+.fc-theme-standard td.has-forse {
+  background-color: #f1f3f4;
+}
+
+body.dark-mode .fc-theme-standard td.has-forse {
+  background-color: #2b2e31;
+}
+
+.has-forse-icon .fc-daygrid-day-top {
+  position: relative;
+}
+
+.has-forse-icon .fc-daygrid-day-top::after {
+  content: '🚫';
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  font-size: 14px;
+  z-index: 2;
+  filter: drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.2));
 }
