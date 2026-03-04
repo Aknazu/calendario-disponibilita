@@ -23,6 +23,12 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage }) => {
     useEffect(() => {
         if (user) {
             fetchEvents();
+
+            const intervalId = setInterval(() => {
+                fetchEvents();
+            }, 30000);
+
+            return () => clearInterval(intervalId);
         }
     }, [user]);
 
@@ -38,7 +44,7 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage }) => {
             id: event.id,
             title: event.nickname,
             start: event.date,
-            color: event.eventType === "Disponibile" ? "#34A853" : event.eventType === "Disponibilità Limitata" ? "#F4B400" : "#EA4335",
+            color: event.eventType === "Disponibile" ? "#34A853" : (event.eventType === "Forse" || event.eventType === "Disponibilità Limitata") ? "#F4B400" : "#EA4335",
             userId: event.userId
         })));
     };
@@ -183,11 +189,11 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage }) => {
                     </Box>
                     <Box display="flex" alignItems="center" gap={1}>
                         <Box width={14} height={14} bgcolor="#F4B400" borderRadius="50%" />
-                        <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>Limitata</Typography>
+                        <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>Forse</Typography>
                     </Box>
                     <Box display="flex" alignItems="center" gap={1}>
                         <Box width={14} height={14} bgcolor="#EA4335" borderRadius="50%" />
-                        <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>Forse</Typography>
+                        <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>Assente</Typography>
                     </Box>
                 </Box>
 
@@ -260,8 +266,8 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage }) => {
                         onChange={(e) => setEventType(e.target.value)}
                     >
                         <MenuItem value="Disponibile">Disponibile</MenuItem>
-                        <MenuItem value="Disponibilità Limitata">Disponibilità Limitata</MenuItem>
                         <MenuItem value="Forse">Forse</MenuItem>
+                        <MenuItem value="Assente">Assente</MenuItem>
                     </Select>
                     {existingEvent && (
                         <Button onClick={handleDeleteEvent} color="error">
