@@ -31,63 +31,91 @@ select {
   margin-top: 10px;
 }
 
-/* Stili per i giorni della settimana in modalità light e dark mode */
-.fc-theme-standard .fc-scrollgrid {
-  color: inherit;
+/* Variabili FullCalendar per Light Mode */
+:root {
+  --fc-page-bg-color: #ffffff;
+  --fc-neutral-bg-color: rgba(208, 208, 208, 0.3);
+  --fc-neutral-text-color: #70757a;
+  --fc-border-color: #dadce0;
+  --fc-button-text-color: #3c4043;
+  --fc-button-bg-color: #ffffff;
+  --fc-button-border-color: #dadce0;
+  --fc-button-hover-bg-color: #f1f3f4;
+  --fc-button-hover-border-color: #dadce0;
+  --fc-button-active-bg-color: #d3e3fd;
+  --fc-button-active-border-color: #d3e3fd;
+  --fc-button-active-text-color: #0b57d0;
+  --fc-today-bg-color: rgba(26, 115, 232, 0.04);
 }
 
-.fc-theme-standard .fc-scrollgrid .fc-col-header-cell-cushion {
-  color: inherit;
-}
-
-/* Stili per i giorni della settimana in modalità dark mode */
-body.dark-mode .fc-theme-standard .fc-scrollgrid .fc-col-header-cell {
-  background-color: #1d1d1d;
-  color: #ffffff;
+/* Variabili FullCalendar per Dark Mode */
+body.dark-mode {
+  --fc-page-bg-color: #1e1f20;
+  --fc-neutral-bg-color: #2b2e31;
+  --fc-neutral-text-color: #9aa0a6;
+  --fc-border-color: #3c4043;
+  --fc-button-text-color: #e3e3e3;
+  --fc-button-bg-color: #1e1f20;
+  --fc-button-border-color: #444746;
+  --fc-button-hover-bg-color: #303134;
+  --fc-button-hover-border-color: #444746;
+  --fc-button-active-bg-color: #004a77;
+  --fc-button-active-border-color: #004a77;
+  --fc-button-active-text-color: #a8c7fa;
+  --fc-today-bg-color: rgba(168, 199, 250, 0.04);
 }
 
 /* Correzione bordi del calendario - Stile Google Calendar M3 */
 .fc {
   font-family: "Roboto", Arial, sans-serif;
-  background-color: #ffffff;
+  background-color: var(--fc-page-bg-color);
   border-radius: 24px;
   padding: 16px;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
 }
 
 body.dark-mode .fc {
-  background-color: #1e1f20;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* Arrotondamento della griglia interna e fix dei bordi */
+.fc-theme-standard .fc-scrollgrid {
+  border-radius: 12px;
+  overflow: hidden;
+  border-collapse: separate;
+  border: 1px solid var(--fc-border-color);
 }
 
 .fc-theme-standard td,
 .fc-theme-standard th {
-  border-color: #dadce0;
+  border-color: var(--fc-border-color);
 }
 
-body.dark-mode .fc-theme-standard td,
-body.dark-mode .fc-theme-standard th {
-  border-color: #3c4043;
+/* Header della settimana in dark mode (eredita dal var root o sovrascritto) */
+.fc-theme-standard .fc-scrollgrid .fc-col-header-cell {
+  background-color: var(--fc-page-bg-color);
+}
+
+body.dark-mode .fc-theme-standard .fc-scrollgrid .fc-col-header-cell {
+  background-color: #1a1b1d;
 }
 
 .fc .fc-toolbar-title {
   font-size: 1.5rem;
   font-weight: 400;
-  color: #3c4043;
+  color: var(--fc-button-text-color);
 }
 
-body.dark-mode .fc .fc-toolbar-title {
-  color: #e8eaed;
-}
-
-/* Eventi stile Google */
+/* Eventi stile Google arrotondati (stondati) */
 .fc-daygrid-event {
-  border-radius: 4px;
-  padding: 2px 4px;
+  border-radius: 8px;
+  /* Era 4px, aumentato per stondare */
+  padding: 3px 6px;
   font-size: 0.8em;
   font-weight: 500;
   border: none;
-  margin-top: 2px;
+  margin-top: 3px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .clickable-event {
@@ -98,65 +126,22 @@ body.dark-mode .fc .fc-toolbar-title {
   cursor: default !important;
 }
 
-/* Header della settimana */
+/* Header della settimana text */
 .fc .fc-col-header-cell-cushion {
   font-weight: 500;
   font-size: 0.85rem;
   text-transform: uppercase;
-  color: #70757a;
+  color: var(--fc-neutral-text-color);
   padding: 8px 0;
 }
 
-body.dark-mode .fc .fc-col-header-cell-cushion {
-  color: #9aa0a6;
-}
-
-/* Bottoni stile Material/Google */
+/* I bottoni ora usano nativamente le variabili, ma forziamo radius */
 .fc .fc-button-primary {
-  background-color: #ffffff;
-  color: #3c4043;
-  border: 1px solid #dadce0;
-  border-radius: 4px;
+  border-radius: 8px;
   text-transform: capitalize;
   font-weight: 500;
   box-shadow: none;
   padding: 6px 16px;
-}
-
-.fc .fc-button-primary:hover {
-  background-color: #f1f3f4;
-  color: #202124;
-  border-color: #dadce0;
-}
-
-.fc .fc-button-primary:disabled {
-  background-color: #ffffff;
-  color: #dadce0;
-  border-color: #dadce0;
-}
-
-.fc .fc-button-active {
-  background-color: #d3e3fd !important;
-  color: #0b57d0 !important;
-  border-color: #d3e3fd !important;
-}
-
-body.dark-mode .fc .fc-button-primary {
-  background-color: #1e1f20;
-  color: #e3e3e3;
-  border-color: #444746;
-}
-
-body.dark-mode .fc .fc-button-primary:hover {
-  background-color: #303134;
-  color: #e3e3e3;
-  border-color: #444746;
-}
-
-body.dark-mode .fc .fc-button-active {
-  background-color: #004a77 !important;
-  color: #a8c7fa !important;
-  border-color: #004a77 !important;
 }
 
 /* Adattamento mobile */
