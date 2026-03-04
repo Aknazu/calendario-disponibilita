@@ -20,7 +20,10 @@ function App() {
     const [showNicknameDialog, setShowNicknameDialog] = useState(false);
     const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-    const [darkMode, setDarkMode] = useState(false);
+    const [darkMode, setDarkMode] = useState(() => {
+        const savedMode = localStorage.getItem("darkMode");
+        return savedMode === "true";
+    });
 
     // Master Mode
     const [isMaster, setIsMaster] = useState(false);
@@ -65,6 +68,7 @@ function App() {
     }, []);
 
     useEffect(() => {
+        localStorage.setItem("darkMode", darkMode);
         document.body.classList.toggle('dark-mode', darkMode);
     }, [darkMode]);
 
@@ -207,7 +211,7 @@ function App() {
                     ) : null}
                 </Toolbar>
             </AppBar>
-            <Container maxWidth="xl" style={{ padding: "10px", marginTop: "10px" }}>
+            <Container maxWidth="xl" sx={{ p: { xs: 0.5, sm: 2 }, mt: { xs: 1, sm: 2 } }}>
                 {user ? (
                     <Calendar user={user} darkMode={darkMode} setDarkMode={setDarkMode} showMessage={showMessage} isMaster={isMaster} />
                 ) : (
