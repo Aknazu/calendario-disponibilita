@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from "react";
 import Calendar from "./components/Calendar";
 import Auth from "./components/Auth";
-import { CssBaseline, ThemeProvider, Container, Typography, AppBar, Toolbar, Button, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Box, TextField, Snackbar, Alert } from "@mui/material";
+import { CssBaseline, ThemeProvider, Container, Typography, AppBar, Toolbar, Button, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Box, TextField, Snackbar, Alert, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from "@mui/material";
 import LogoutIcon from '@mui/icons-material/Logout';
 import StarIcon from '@mui/icons-material/Star';
+import MenuIcon from '@mui/icons-material/Menu';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { addUserToFirestore, getUserNickname, updateUserNickname } from "./firestoreService";
@@ -91,6 +94,16 @@ function App() {
         }
     };
 
+    const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+
+    const handleMenuOpen = (event) => {
+        setMenuAnchorEl(event.currentTarget);
+    };
+
+    const handleMenuClose = () => {
+        setMenuAnchorEl(null);
+    };
+
     return (
         <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
             <CssBaseline />
@@ -104,21 +117,73 @@ function App() {
                     </Box>
                     {user ? (
                         <Box display="flex" alignItems="center" flexWrap="nowrap" justifyContent="flex-end" gap={1}>
-                            <Typography variant="body1" sx={{ fontWeight: "bold", fontSize: { xs: '0.9rem', sm: '1rem' }, whiteSpace: "nowrap" }}>
-                                {user.nickname}
-                            </Typography>
-                            {isMaster ? (
-                                <Box display="flex" alignItems="center" bgcolor="#FFF8E1" borderRadius="50%" p={0.5} ml={1} title="Master Mode Attiva">
-                                    <StarIcon sx={{ color: '#F4B400', fontSize: '1.2rem' }} />
-                                </Box>
-                            ) : (
-                                <IconButton color="inherit" onClick={() => setShowMasterDialog(true)} size="small" sx={{ ml: 1, width: 40, height: 40, p: 0 }} title="Sblocca Master Mode">
-                                    <img src={process.env.PUBLIC_URL + '/master-icon.png'} alt="Master Mode" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: '8px' }} />
-                                </IconButton>
-                            )}
-                            <Button color="inherit" onClick={() => setShowLogoutDialog(true)} size="small" startIcon={<LogoutIcon />} sx={{ whiteSpace: "nowrap", minWidth: "auto", px: { xs: 1, sm: 2 } }}>
-                                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline-block' } }}>Logout</Box>
-                            </Button>
+                            <IconButton color="inherit" onClick={handleMenuOpen} edge="end" sx={{ ml: 1 }}>
+                                <MenuIcon />
+                            </IconButton>
+
+                            <Menu
+                                anchorEl={menuAnchorEl}
+                                open={Boolean(menuAnchorEl)}
+                                onClose={handleMenuClose}
+                                PaperProps={{
+                                    elevation: 3,
+                                    sx: { overflow: 'visible', mt: 1.5, minWidth: 200 }
+                                }}
+                                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                            >
+                                <MenuItem disableRipple sx={{ cursor: 'default', '&:hover': { backgroundColor: 'transparent' } }}>
+                                    <Typography variant="body1" sx={{ fontWeight: "bold", color: "text.primary" }}>
+                                        {user.nickname}
+                                    </Typography>
+                                </MenuItem>
+                                <Divider />
+                                <MenuItem onClick={() => {
+                                    setDarkMode(!darkMode);
+                                    handleMenuClose();
+                                }}>
+                                    <ListItemIcon>
+                                        {darkMode ? <Brightness7Icon fontSize="small" /> : <Brightness4Icon fontSize="small" />}
+                                    </ListItemIcon>
+                                    <ListItemText>
+                                        {darkMode ? "Tema Chiaro" : "Tema Scuro"}
+                                    </ListItemText>
+                                </MenuItem>
+
+                                {!isMaster && (
+                                    <MenuItem onClick={() => {
+                                        setShowMasterDialog(true);
+                                        handleMenuClose();
+                                    }}>
+                                        <ListItemIcon>
+                                            <img src={process.env.PUBLIC_URL + '/master-icon.png'} alt="Master Mode" style={{ width: '24px', height: '24px', objectFit: 'contain', borderRadius: '4px' }} />
+                                        </ListItemIcon>
+                                        <ListItemText>Sblocca Master Mode</ListItemText>
+                                    </MenuItem>
+                                )}
+                                {isMaster && (
+                                    <MenuItem disableRipple sx={{ cursor: 'default', '&:hover': { backgroundColor: 'transparent' } }}>
+                                        <ListItemIcon>
+                                            <Box display="flex" alignItems="center" bgcolor="#FFF8E1" borderRadius="50%" p={0.5}>
+                                                <StarIcon sx={{ color: '#F4B400', fontSize: '1rem' }} />
+                                            </Box>
+                                        </ListItemIcon>
+                                        <ListItemText sx={{ color: "text.primary" }}>Master Mode Attiva</ListItemText>
+                                    </MenuItem>
+                                )}
+                                <Divider />
+                                <MenuItem onClick={() => {
+                                    setShowLogoutDialog(true);
+                                    handleMenuClose();
+                                }}>
+                                    <ListItemIcon>
+                                        <LogoutIcon color="error" fontSize="small" />
+                                    </ListItemIcon>
+                                    <ListItemText sx={{ color: 'error.main' }}>
+                                        Logout
+                                    </ListItemText>
+                                </MenuItem>
+                            </Menu>
                         </Box>
                     ) : null}
                 </Toolbar>

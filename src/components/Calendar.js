@@ -3,11 +3,11 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { getEvents, addEvent, deleteEvent, updateEvent, getSessionDays, toggleSessionDay, getUserEmail } from "../firestoreService";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, MenuItem, Box, Typography, Divider } from "@mui/material";
-import Brightness4Icon from '@mui/icons-material/Brightness4';
-import Brightness7Icon from '@mui/icons-material/Brightness7';
-import CheckBoxOutlinedIcon from '@mui/icons-material/CheckBoxOutlined';
-import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
+import { sendTelegramGroupMessage } from "../telegramService";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, MenuItem, Box, Typography, Divider, IconButton, Tooltip } from "@mui/material";
+import AddIcon from '@mui/icons-material/Add';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
 import StarIcon from '@mui/icons-material/Star';
 import emailjs from 'emailjs-com';
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -169,12 +169,21 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                     }
                 }
 
+                let telegramSent = false;
+                if (emailsSent > 0 || usersWithoutEmail > 0) {
+                    telegramSent = await sendTelegramGroupMessage(dateStr, user.nickname);
+                }
+
+                let messageText = `Giorno sessione confermato. ${emailsSent} email inviate!`;
+                if (usersWithoutEmail > 0) messageText += ` (${usersWithoutEmail} senza email).`;
+                if (telegramSent) messageText += ` Notifica Telegram inviata nel gruppo!`;
+
                 if (emailsSent > 0) {
-                    showMessage(`Giorno sessione confermato. ${emailsSent} email di notifica inviate! ${usersWithoutEmail > 0 ? `(${usersWithoutEmail} utenti non avevano un'email registrata)` : ''}`, "success");
+                    showMessage(messageText, "success");
                 } else if (usersWithoutEmail > 0) {
-                    showMessage(`Giorno sessione confermato, ma o gli utenti registrati per questo giorno non hanno un'email valida, o c'è un errore nella configurazione.`, "warning");
+                    showMessage(`Giorno confermato. Delle notifiche via email sono fallite (utenti senza indirizzo registrato). ${telegramSent ? "Messaggio Telegram inviato!" : ""}`, "warning");
                 } else {
-                    showMessage("Giorno sessione impostato, ma non ci sono utenti registrati per questo giorno.", "info");
+                    showMessage(`Giorno sessione impostato, ma non ci sono utenti per questo giorno. ${telegramSent ? "Messaggio Telegram inviato!" : ""}`, "info");
                 }
             } else {
                 showMessage("Giorno sessione rimosso.", "info");
@@ -242,21 +251,6 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
 
     return (
         <div>
-            {isBulkMode && selectedDates.length > 0 && (
-                <Box display="flex" justifyContent="center" mb={2} mt={1}>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={() => {
-                            setExistingEvent(null);
-                            setEventType("");
-                            setOpen(true);
-                        }}
-                    >
-                        Aggiungi per {selectedDates.length} giorni
-                    </Button>
-                </Box>
-            )}
             <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems="center" mb={2} mt={1} gap={2}>
                 {/* Legenda Colori */}
                 <Box display="flex" gap={2} flexWrap="wrap" justifyContent="center">
@@ -274,31 +268,6 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                     </Box>
                 </Box>
 
-                {/* Bottoni Azioni (Selezione & Dark Mode) */}
-                <Box display="flex" flexDirection={{ xs: 'column', sm: 'row' }} alignItems="center" gap={2} mt={{ xs: 2, md: 0 }} width={{ xs: '100%', md: 'auto' }}>
-                    <Button
-                        variant={isBulkMode ? "contained" : "outlined"}
-                        color={isBulkMode ? "secondary" : "primary"}
-                        onClick={() => {
-                            setIsBulkMode(!isBulkMode);
-                            if (isBulkMode) setSelectedDates([]);
-                        }}
-                        startIcon={isBulkMode ? <CancelOutlinedIcon /> : <CheckBoxOutlinedIcon />}
-                        sx={{ flex: 1, width: { xs: '100%', sm: 'auto' }, whiteSpace: 'nowrap' }}
-                    >
-                        {isBulkMode ? "Annulla" : "Selezione Multipla"}
-                    </Button>
-
-                    <Button
-                        variant="outlined"
-                        color="inherit"
-                        onClick={() => setDarkMode(!darkMode)}
-                        startIcon={darkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-                        sx={{ flex: 1, width: { xs: '100%', sm: 'auto' }, whiteSpace: 'nowrap' }}
-                    >
-                        {darkMode ? "Chiaro" : "Scuro"}
-                    </Button>
-                </Box>
             </Box>
             <FullCalendar
                 plugins={[dayGridPlugin, interactionPlugin]}
@@ -378,6 +347,97 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Pulsanti Fluttuanti (Selezione Multipla) */}
+            <Box
+                display="flex"
+                flexDirection={{ xs: 'column-reverse', sm: 'row' }}
+                alignItems="center"
+                gap={1.5}
+                sx={{
+                    position: 'fixed',
+                    bottom: { xs: 20, sm: 30 },
+                    right: { xs: 20, sm: 30 },
+                    zIndex: 1000
+                }}
+            >
+                {!isBulkMode ? (
+                    <Tooltip title="Selezione Multipla" placement="left">
+                        <IconButton
+                            onClick={() => setIsBulkMode(true)}
+                            sx={{
+                                bgcolor: 'primary.main',
+                                color: 'white',
+                                width: { xs: 56, sm: 64 },
+                                height: { xs: 56, sm: 64 },
+                                '&:hover': { bgcolor: 'primary.dark' },
+                                boxShadow: 3
+                            }}
+                        >
+                            <AddIcon sx={{ fontSize: { xs: 30, sm: 36 } }} />
+                        </IconButton>
+                    </Tooltip>
+                ) : (
+                    <>
+                        <Tooltip title="Conferma Giorni" placement="top">
+                            <span>
+                                <IconButton
+                                    onClick={() => {
+                                        setExistingEvent(null);
+                                        setEventType("");
+                                        setOpen(true);
+                                    }}
+                                    disabled={selectedDates.length === 0}
+                                    sx={{
+                                        bgcolor: selectedDates.length > 0 ? 'success.main' : 'action.disabledBackground',
+                                        color: 'white',
+                                        width: { xs: 50, sm: 56 },
+                                        height: { xs: 50, sm: 56 },
+                                        '&:hover': { bgcolor: 'success.dark' },
+                                        '&.Mui-disabled': { bgcolor: 'action.disabledBackground', color: 'text.disabled' },
+                                        boxShadow: 3
+                                    }}
+                                >
+                                    <CheckIcon fontSize="large" />
+                                </IconButton>
+                            </span>
+                        </Tooltip>
+
+                        {selectedDates.length > 0 && (
+                            <Box sx={{
+                                bgcolor: 'background.paper',
+                                color: 'text.primary',
+                                borderRadius: '20px',
+                                px: 2,
+                                py: 1,
+                                boxShadow: 2,
+                                fontWeight: 'bold'
+                            }}>
+                                {selectedDates.length} d
+                            </Box>
+                        )}
+
+                        <Tooltip title="Annulla Selezione" placement="top">
+                            <IconButton
+                                onClick={() => {
+                                    setIsBulkMode(false);
+                                    setSelectedDates([]);
+                                }}
+                                sx={{
+                                    bgcolor: 'error.main',
+                                    color: 'white',
+                                    width: { xs: 50, sm: 56 },
+                                    height: { xs: 50, sm: 56 },
+                                    boxShadow: 3,
+                                    '&:hover': { bgcolor: 'error.dark' }
+                                }}
+                            >
+                                <CloseIcon fontSize="large" />
+                            </IconButton>
+                        </Tooltip>
+                    </>
+                )}
+            </Box>
         </div>
     );
 };
