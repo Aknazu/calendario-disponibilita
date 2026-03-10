@@ -9,6 +9,7 @@ import AddIcon from '@mui/icons-material/Add';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import StarIcon from '@mui/icons-material/Star';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import itLocale from '@fullcalendar/core/locales/it';
@@ -238,6 +239,19 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
         setOpen(false);
     };
 
+    const handleAddToGoogleCalendar = () => {
+        if (!selectedDates || selectedDates.length === 0) return;
+        const dateStr = selectedDates[0];
+        const startStr = dateStr.replace(/-/g, '') + 'T210000';
+        const endStr = dateStr.replace(/-/g, '') + 'T233000';
+        
+        const title = encodeURIComponent("Sessione D&D");
+        const dates = `${startStr}/${endStr}`;
+        const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}`;
+        
+        window.open(url, '_blank');
+    };
+
     const handlers = useSwipeable({
         onSwiping: (eventData) => {
             // Muovi il calendario con il dito, solo in orizzontale
@@ -355,6 +369,21 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                         <Button onClick={handleDeleteEvent} color="error" sx={{ mt: 1 }}>
                             Elimina Evento
                         </Button>
+                    )}
+
+                    {!isBulkMode && sessionDays.includes(selectedDates[0]) && (
+                        <>
+                            <Divider sx={{ my: 1 }} />
+                            <Button
+                                variant="contained"
+                                fullWidth
+                                onClick={handleAddToGoogleCalendar}
+                                startIcon={<CalendarMonthIcon />}
+                                sx={{ mt: 1, mb: 1, bgcolor: '#4285F4', '&:hover': { bgcolor: '#3367D6' } }}
+                            >
+                                Aggiungi a Google Calendar
+                            </Button>
+                        </>
                     )}
 
                     {isMaster && !isBulkMode && (
