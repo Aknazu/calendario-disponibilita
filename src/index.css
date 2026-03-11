@@ -269,3 +269,72 @@ body.dark-mode .fc-theme-standard td.has-forse {
 body.dark-mode .fc-theme-standard td.session-day {
   background-color: #665c3f !important;
 }
+
+/* =========================================
+   Visualizzazione Giorni Passati e Odierni
+========================================= */
+
+/* Giorni Passati - Effetto opaco/sbiadito ma testo leggibile e no blur */
+.fc .fc-day-past .fc-daygrid-day-frame {
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+/* Rende i giorni passati più visibili se ci si passa sopra col mouse (opzionale ma utile per la leggibilità) */
+.fc .fc-day-past:hover .fc-daygrid-day-frame {
+  opacity: 0.8;
+}
+
+/* Giorno Attuale - Nuova proposta: Bordo superiore elegante, testo accattivante e sfondo animato "respiro" */
+@keyframes breatheToday {
+  0% {
+    background-color: rgba(26, 115, 232, 0.02);
+  }
+
+  50% {
+    background-color: rgba(26, 115, 232, 0.12);
+  }
+
+  100% {
+    background-color: rgba(26, 115, 232, 0.02);
+  }
+}
+
+@keyframes breatheTodayDark {
+  0% {
+    background-color: rgba(168, 199, 250, 0.02);
+  }
+
+  50% {
+    background-color: rgba(168, 199, 250, 0.12);
+  }
+
+  100% {
+    background-color: rgba(168, 199, 250, 0.02);
+  }
+}
+
+.fc-theme-standard td.fc-day-today {
+  /* Al posto dell'ombra e dell'interno blu, diamo un colore 'vivo' che pulsa lentamente */
+  animation: breatheToday 4s ease-in-out infinite !important;
+  /* Mettiamo un bordo superiore in risalto, come un evidenziatore */
+  border-top: 3px solid #1a73e8 !important;
+}
+
+body.dark-mode .fc-theme-standard td.fc-day-today {
+  animation: breatheTodayDark 4s ease-in-out infinite !important;
+  border-top: 3px solid #a8c7fa !important;
+}
+
+/* Numero del giorno attuale in risalto ma senza cerchio */
+.fc .fc-day-today .fc-daygrid-day-number {
+  color: #1a73e8 !important;
+  font-weight: 900;
+  font-size: 1.25em;
+  /* Un po' più grande rispetto agli altri giorni */
+  padding-right: 6px;
+}
+
+body.dark-mode .fc .fc-day-today .fc-daygrid-day-number {
+  color: #a8c7fa !important;
+}
