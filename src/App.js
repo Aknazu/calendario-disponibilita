@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Calendar from "./components/Calendar";
 import Auth from "./components/Auth";
-import { CssBaseline, ThemeProvider, Container, Typography, AppBar, Toolbar, Button, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Box, TextField, Snackbar, Alert, Menu, MenuItem, ListItemIcon, ListItemText, Divider, CircularProgress } from "@mui/material";
+import { CssBaseline, ThemeProvider, Container, Typography, AppBar, Toolbar, Button, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Box, TextField, Snackbar, Alert, Menu, MenuItem, ListItemIcon, ListItemText, Divider, CircularProgress, Tooltip } from "@mui/material";
 import LogoutIcon from '@mui/icons-material/Logout';
 import StarIcon from '@mui/icons-material/Star';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -137,6 +137,13 @@ function App() {
                         </Box>
                         {user ? (
                             <Box display="flex" alignItems="center" flexWrap="nowrap" justifyContent="flex-end" gap={1}>
+                                {isMaster && (
+                                    <Tooltip title="Master Mode Attiva">
+                                        <Box display="flex" alignItems="center" bgcolor="#FFF8E1" borderRadius="50%" p={0.5} sx={{ mr: 1, cursor: "help" }}>
+                                            <StarIcon sx={{ color: '#F4B400', fontSize: '1.2rem' }} />
+                                        </Box>
+                                    </Tooltip>
+                                )}
                                 <IconButton color="inherit" onClick={handleMenuOpen} edge="end" sx={{ ml: 1 }}>
                                     <MenuIcon />
                                 </IconButton>
