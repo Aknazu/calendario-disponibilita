@@ -3,8 +3,8 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { getEvents, addEvent, deleteEvent, updateEvent, getSessionDays, toggleSessionDay } from "../firestoreService";
-import { sendTelegramGroupMessage } from "../telegramService";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, MenuItem, Box, Typography, Divider, IconButton, Tooltip } from "@mui/material";
+import { sendTelegramGroupMessage, sendTelegramFivePlayersMessage } from "../telegramService";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, MenuItem, Box, Typography, Divider, IconButton, Tooltip, CircularProgress } from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
@@ -24,6 +24,7 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
     const [existingEvent, setExistingEvent] = useState(null);
     const [eventType, setEventType] = useState("");
     const [isProcessingSession, setIsProcessingSession] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const calendarRef = React.useRef(null);
     const [swipeOffset, setSwipeOffset] = useState(0);
     const [isAnimating, setIsAnimating] = useState(false);
@@ -187,9 +188,18 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
     };
 
     const handleEventSelection = async () => {
+        setIsSaving(true);
         try {
+            let datesJustSetToDisponibile = [];
+
             if (isBulkMode && selectedDates.length > 0) {
                 for (const dateStr of selectedDates) {
+                    const prevEvents = events.filter(e => e.start === dateStr && e.color === "#34A853");
+                    const wasDisponibile = prevEvents.some(e => e.userId === user.uid);
+                    if (!wasDisponibile && eventType === "Disponibile") {
+                        datesJustSetToDisponibile.push(dateStr);
+                    }
+
                     const eventRef = collection(db, "events");
                     const q = query(eventRef, where("userId", "==", user.uid), where("date", "==", dateStr));
                     const querySnapshot = await getDocs(q);
@@ -203,9 +213,16 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                 setSelectedDates([]);
                 setIsBulkMode(false);
             } else if (existingEvent && existingEvent.userId === user.uid) {
+                const wasDisponibile = existingEvent.eventType === "Disponibile";
+                if (!wasDisponibile && eventType === "Disponibile") {
+                    datesJustSetToDisponibile.push(selectedDates[0]);
+                }
                 // Modifica evento singolo esistente
                 await updateEvent(existingEvent.id, eventType);
             } else {
+                if (eventType === "Disponibile") {
+                    datesJustSetToDisponibile.push(selectedDates[0]);
+                }
                 // Creazione evento singolo
                 const dateStr = selectedDates[0];
                 const eventRef = collection(db, "events");
@@ -219,9 +236,32 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
             fetchEvents();
             setOpen(false);
             showMessage(existingEvent ? "Evento aggiornato!" : "Eventi salvati con successo!", "success");
+
+            // Controllo 5 giocatori per le date modificate
+            for (const dateStr of datesJustSetToDisponibile) {
+                const eventRef = collection(db, "events");
+                const qDay = query(eventRef, where("date", "==", dateStr), where("eventType", "==", "Disponibile"));
+                const qSnap = await getDocs(qDay);
+                if (qSnap.docs.length === 5) {
+                    const players = qSnap.docs.map(doc => doc.data().nickname);
+                    
+                    const dateObj = new Date(dateStr);
+                    const formattedDate = new Intl.DateTimeFormat('it-IT', {
+                        weekday: 'long',
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    }).format(dateObj);
+                    
+                    await sendTelegramFivePlayersMessage(formattedDate, players);
+                    showMessage(`Raggiunti 5 giocatori per il ${formattedDate}. Notifica Telegram inviata!`, "success");
+                }
+            }
         } catch (error) {
             console.error("handleEventSelection error:", error.message);
             showMessage(error.message, "error");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -406,9 +446,10 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setOpen(false)} color="default">Annulla</Button>
-                    <Button onClick={handleEventSelection} color="primary" disabled={isProcessingSession}>
-                        {existingEvent ? "Aggiorna Evento" : "Aggiungi Evento"}
+                    <Button onClick={() => setOpen(false)} color="default" disabled={isSaving}>Annulla</Button>
+                    <Button onClick={handleEventSelection} color="primary" disabled={isProcessingSession || isSaving}>
+                        {isSaving ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
+                        {isSaving ? "Salvando..." : (existingEvent ? "Aggiorna Evento" : "Aggiungi Evento")}
                     </Button>
                 </DialogActions>
             </Dialog>
