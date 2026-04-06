@@ -1,70 +1,90 @@
-# Getting Started with Create React App
+# 🗓 D&D Session Calendar
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB) ![Firebase](https://img.shields.io/badge/firebase-%23039BE5.svg?style=for-the-badge&logo=firebase) ![Material UI](https://img.shields.io/badge/MUI-%230081CB.svg?style=for-the-badge&logo=mui&logoColor=white) 
 
-## Available Scripts
+Un'applicazione web elegante e intuitiva costruita in React per gestire e organizzare le sessioni di **Dungeons & Dragons** (o altri giochi di ruolo). Permette al Master e ai Giocatori di indicare le proprie disponibilità sul calendario, incrociare i dati e ricevere notifiche automatiche via Telegram.
 
-In the project directory, you can run:
+## ✨ Funzionalità
 
-### `npm start`
+- **Gestione delle Disponibilità:** I giocatori possono segnare i giorni in cui sono *Disponibili*, *Forse* o *Assenti*.
+- **Inserimento Multiplo:** Modalità "bulk" per selezionare velocemente più giorni con un solo click e aggiornare il proprio stato.
+- **Supporto Visivo Immediato:** Corona da Re/Regina nei giorni in cui ci sono almeno 4 o 5 persone disponibili, per facilitare il colpo d'occhio.
+- **Gestione "Master":** L'utente Master ha i poteri per confermare il giorno della Sessione in base alle disponibilità.
+- **Aggiunta a Google Calendar:** Esportazione veloce al proprio calendario personale con 1-click.
+- **Notifiche Telegram Automatiche:** 
+  - Notifica al gruppo quando viene **confermata la sessione**.
+  - Notifica automatica non appena viene rilevato per una data il traguardo di **5 giocatori disponibili**.
+- **Dark Mode Support:** Tema Scuro/Chiaro supportato nativamente dall'interfaccia.
+- **Installazione come Web App (PWA):** Interfaccia Mobile-first compatibile con gesti di "Swipe" sul calendario e predisposta.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 🚀 Tecnologie Utilizzate
 
-### `npm test`
+- **Frontend:** React.js, Material UI (MUI), FullCalendar (per la gestione della griglia mensile e settimanale).
+- **Backend & Database:** Google Firebase (Firestore per i dati degli eventi e utenti, Firebase Authentication).
+- **Integrazioni:** Webhooks tramite [Make.com](https://make.com) per interagire in totale sicurezza col Bot di Telegram, senza esporre token sensibili nel frontend.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## 🛠 Setup e Installazione Locale
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Per far girare questo progetto in locale sul tuo computer, segui i passaggi:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 1. Clona la repository e installa le dipendenze
+```bash
+git clone <url-del-progetto>
+cd calendario-disponibilita
+npm install
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 2. Configura le variabili d'ambiente
+Crea un file `.env` nella root del progetto:
+```env
+REACT_APP_FIREBASE_API_KEY=La_Tua_Api_Key
+REACT_APP_FIREBASE_AUTH_DOMAIN=il-tuo-app.firebaseapp.com
+REACT_APP_FIREBASE_PROJECT_ID=il-tuo-project-id
+REACT_APP_FIREBASE_STORAGE_BUCKET=il-tuo-bucket.appspot.com
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=1234567890
+REACT_APP_FIREBASE_APP_ID=1:12345:web:abcd
 
-### `npm run eject`
+# Webhook per ricevere le chiamate da Make.com -> Telegram
+REACT_APP_MAKE_WEBHOOK_URL=https://hook.euX.make.com/...
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### 3. Avvia l'ambiente di sviluppo
+```bash
+npm start
+```
+L'applicazione girerà su [http://localhost:3000](http://localhost:3000).
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+---
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## 🤖 Come funziona l'Integrazione Telegram (Make.com)
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+Questa app adotta un approccio sicuro per comunicare con Telegram: non contatta mai la `Telegram Bot API` direttamente via frontend per non rischiare che i token bot finiscano in mani sbagliate. Inviamo invece i dati a un **Webhook Personalizzato** su Make.com.
 
-## Learn More
+Il webhook invia un oggetto JSON come questo:
+```json
+{
+  "type": "session_confirmed", // o "five_players"
+  "date": "giovedì 12/05/2026",
+  "master": "NomeMaster",
+  "players": "Pippo, Pluto, Topolino, Paperino, Minni",
+  "origin": "https://tuo-dominio.com"
+}
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Lo scenario in Make.com filtra in base al parametro `type`:
+- Se `type ➔ session_confirmed`: Invia al gruppo il recap della sessione convocata dal Master.
+- Se `type ➔ five_players`: Invia al gruppo un alert avvisando che 5 giocatori hanno segnato la disponibilità per un determinato giorno.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+---
 
-### Code Splitting
+## 📦 Build e Deploy
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Per creare una versione di produzione ottimizzata, esegui:
+```bash
+npm run build
+```
+La cartella `build/` sarà pronta per essere caricata su servizi serverless o static-hosting.
