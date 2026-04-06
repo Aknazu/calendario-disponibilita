@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Calendar from "./components/Calendar";
 import Auth from "./components/Auth";
-import { CssBaseline, ThemeProvider, Container, Typography, AppBar, Toolbar, Button, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Box, TextField, Snackbar, Alert, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from "@mui/material";
+import { CssBaseline, ThemeProvider, Container, Typography, AppBar, Toolbar, Button, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Box, TextField, Snackbar, Alert, Menu, MenuItem, ListItemIcon, ListItemText, Divider, CircularProgress } from "@mui/material";
 import LogoutIcon from '@mui/icons-material/Logout';
 import StarIcon from '@mui/icons-material/Star';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -10,7 +10,7 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import EditIcon from '@mui/icons-material/Edit';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { addUserToFirestore, getUserNickname, updateUserNickname, isNicknameTaken } from "./firestoreService";
+import { addUserToFirestore, getUserNickname, updateUserNickname, isNicknameTaken, verifyMasterPassword } from "./firestoreService";
 
 import { lightTheme, darkTheme } from './theme';
 
@@ -29,6 +29,7 @@ function App() {
     const [isMaster, setIsMaster] = useState(false);
     const [showMasterDialog, setShowMasterDialog] = useState(false);
     const [masterPassword, setMasterPassword] = useState("");
+    const [isCheckingPassword, setIsCheckingPassword] = useState(false);
 
     const showMessage = (message, severity = "info") => {
         setSnackbar({ open: true, message, severity });
@@ -97,8 +98,12 @@ function App() {
         showMessage("Nickname aggiornato con successo!", "success");
     };
 
-    const handleMasterUnlock = () => {
-        if (masterPassword === process.env.REACT_APP_MASTER_PASSWORD) {
+    const handleMasterUnlock = async () => {
+        setIsCheckingPassword(true);
+        const isValid = await verifyMasterPassword(masterPassword);
+        setIsCheckingPassword(false);
+        
+        if (isValid) {
             setIsMaster(true);
             setShowMasterDialog(false);
             setMasterPassword("");
@@ -247,7 +252,7 @@ function App() {
                 </DialogActions>
             </Dialog>
 
-            <Dialog open={showMasterDialog} onClose={() => setShowMasterDialog(false)}>
+            <Dialog open={showMasterDialog} onClose={() => !isCheckingPassword && setShowMasterDialog(false)}>
                 <DialogTitle>Sblocca Master Mode</DialogTitle>
                 <DialogContent>
                     <TextField
@@ -258,14 +263,16 @@ function App() {
                         type="password"
                         value={masterPassword}
                         onChange={(e) => setMasterPassword(e.target.value)}
+                        disabled={isCheckingPassword}
                     />
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setShowMasterDialog(false)} color="default">
+                    <Button onClick={() => setShowMasterDialog(false)} color="default" disabled={isCheckingPassword}>
                         Annulla
                     </Button>
-                    <Button onClick={handleMasterUnlock} color="primary" variant="contained">
-                        Sblocca
+                    <Button onClick={handleMasterUnlock} color="primary" variant="contained" disabled={isCheckingPassword}>
+                        {isCheckingPassword ? <CircularProgress size={20} sx={{ mr: 1, color: "white" }} /> : null}
+                        {isCheckingPassword ? "Verifica..." : "Sblocca"}
                     </Button>
                 </DialogActions>
             </Dialog>

@@ -173,3 +173,19 @@ export const getUserEmail = async (userId) => {
         return null;
     }
 };
+
+// 🔹 Verifica la Password Master dal database
+export const verifyMasterPassword = async (inputPassword) => {
+    try {
+        const settingsDoc = await getDoc(doc(db, "settings", "master_config"));
+        if (settingsDoc.exists()) {
+            const data = settingsDoc.data();
+            return data.password === inputPassword;
+        }
+        console.warn("Documento master_config non trovato in settings!");
+        return false;
+    } catch (error) {
+        console.error("Errore nella verifica della password master:", error);
+        return false;
+    }
+};
