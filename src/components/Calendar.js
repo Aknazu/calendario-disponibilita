@@ -3,7 +3,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { getEvents, addEvent, deleteEvent, updateEvent, getSessionDays, toggleSessionDay } from "../firestoreService";
-import { sendTelegramGroupMessage, sendTelegramFivePlayersMessage } from "../telegramService";
+import { sendTelegramGroupMessage, sendTelegramFivePlayersMessage, sendTelegramStatusChangeMessage } from "../telegramService";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, MenuItem, Box, Typography, Divider, IconButton, Tooltip, CircularProgress } from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import CheckIcon from '@mui/icons-material/Check';
@@ -56,7 +56,8 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
             title: event.nickname,
             start: event.date,
             color: event.eventType === "Disponibile" ? "#34A853" : (event.eventType === "Forse" || event.eventType === "Disponibilità Limitata") ? "#F4B400" : "#EA4335",
-            userId: event.userId
+            userId: event.userId,
+            eventType: event.eventType
         })));
     };
 
@@ -191,6 +192,7 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
         setIsSaving(true);
         try {
             let datesJustSetToDisponibile = [];
+            let datesDroppedFromFive = [];
 
             if (isBulkMode && selectedDates.length > 0) {
                 for (const dateStr of selectedDates) {
@@ -198,6 +200,9 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                     const wasDisponibile = prevEvents.some(e => e.userId === user.uid);
                     if (!wasDisponibile && eventType === "Disponibile") {
                         datesJustSetToDisponibile.push(dateStr);
+                    }
+                    if (wasDisponibile && eventType !== "Disponibile" && prevEvents.length >= 5) {
+                        datesDroppedFromFive.push({ dateStr, newStatus: eventType });
                     }
 
                     const eventRef = collection(db, "events");
@@ -213,9 +218,13 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                 setSelectedDates([]);
                 setIsBulkMode(false);
             } else if (existingEvent && existingEvent.userId === user.uid) {
-                const wasDisponibile = existingEvent.eventType === "Disponibile";
+                const wasDisponibile = existingEvent.eventType === "Disponibile" || existingEvent.color === "#34A853";
                 if (!wasDisponibile && eventType === "Disponibile") {
                     datesJustSetToDisponibile.push(selectedDates[0]);
+                }
+                const prevEvents = events.filter(e => e.start === selectedDates[0] && e.color === "#34A853");
+                if (wasDisponibile && eventType !== "Disponibile" && prevEvents.length >= 5) {
+                    datesDroppedFromFive.push({ dateStr: selectedDates[0], newStatus: eventType });
                 }
                 // Modifica evento singolo esistente
                 await updateEvent(existingEvent.id, eventType);
@@ -257,6 +266,19 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                     showMessage(`Raggiunti 5 giocatori per il ${formattedDate}. Notifica Telegram inviata!`, "success");
                 }
             }
+
+            // Controllo notifiche calo di disponibilità da 5
+            for (const drop of datesDroppedFromFive) {
+                const dateObj = new Date(drop.dateStr);
+                const formattedDate = new Intl.DateTimeFormat('it-IT', {
+                    weekday: 'long',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                }).format(dateObj);
+
+                await sendTelegramStatusChangeMessage(formattedDate, user.nickname, drop.newStatus);
+            }
         } catch (error) {
             console.error("handleEventSelection error:", error.message);
             showMessage(error.message, "error");
@@ -268,9 +290,25 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
     const handleDeleteEvent = async () => {
         if (existingEvent) {
             try {
+                const wasDisponibile = existingEvent.eventType === "Disponibile" || existingEvent.color === "#34A853";
+                const prevEvents = events.filter(e => e.start === existingEvent.start && e.color === "#34A853");
+                const notifyDrop = wasDisponibile && prevEvents.length >= 5;
+                const droppedDateStr = existingEvent.start;
+
                 await deleteEvent(existingEvent.id, user.uid);
                 fetchEvents();
                 showMessage("Evento eliminato con successo", "info");
+
+                if (notifyDrop) {
+                    const dateObj = new Date(droppedDateStr);
+                    const formattedDate = new Intl.DateTimeFormat('it-IT', {
+                        weekday: 'long',
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    }).format(dateObj);
+                    await sendTelegramStatusChangeMessage(formattedDate, user.nickname, "Cancellata");
+                }
             } catch (error) {
                 console.error(error.message);
                 showMessage("Non sei autorizzato a cancellare questo evento.", "error");

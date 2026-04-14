@@ -71,3 +71,39 @@ export const sendTelegramFivePlayersMessage = async (formattedDate, players) => 
         return false;
     }
 };
+
+export const sendTelegramStatusChangeMessage = async (formattedDate, playerNickname, newStatus) => {
+    const webhookUrl = process.env.REACT_APP_MAKE_WEBHOOK_URL;
+
+    if (!webhookUrl || webhookUrl === "YOUR_MAKE_WEBHOOK_URL") {
+        console.warn("Webhook Make.com non configurato. Salto notifica di cambio status.");
+        return false;
+    }
+
+    try {
+        const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                type: "status_change",
+                date: formattedDate,
+                player: playerNickname,
+                newStatus: newStatus,
+                origin: window.location.origin
+            })
+        });
+
+        if (!response.ok) {
+            console.error("Errore risposta dal Webhook Make per cambio status:", await response.text());
+            return false;
+        }
+
+        console.log("Notifica 'Cambio Status' inviata con successo al Webhook");
+        return true;
+    } catch (error) {
+        console.error("Errore di rete verso Webhook Make (cambio status):", error);
+        return false;
+    }
+};
