@@ -1,4 +1,4 @@
-export const sendTelegramGroupMessage = async (formattedDate, masterNickname, availablePlayers) => {
+export const sendTelegramGroupMessage = async (formattedDate, masterNickname, availablePlayers, calendarUrl = null) => {
     // Ora usiamo Make.com (Webhook sicuro) per non esporre il Token di Telegram
     const webhookUrl = process.env.REACT_APP_MAKE_WEBHOOK_URL;
 
@@ -20,6 +20,7 @@ export const sendTelegramGroupMessage = async (formattedDate, masterNickname, av
                 date: formattedDate,
                 master: masterNickname,
                 players: availablePlayers.join(", ") || "Nessuno (Attenzione!)",
+                calendar_url: calendarUrl || "",
                 origin: window.location.origin
             })
         });

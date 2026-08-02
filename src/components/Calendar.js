@@ -169,7 +169,13 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                     .filter(e => e.start === dateStr && (e.color === "#34A853" || e.color === "#F4B400"))
                     .map(e => e.title);
 
-                const telegramSent = await sendTelegramGroupMessage(formattedDate, user.nickname, availablePlayers);
+                // Genera URL di Google Calendar per il bot di Telegram
+                const startStr = dateStr.replace(/-/g, '') + 'T210000';
+                const endStr = dateStr.replace(/-/g, '') + 'T233000';
+                const title = encodeURIComponent("Sessione D&D");
+                const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startStr}/${endStr}`;
+
+                const telegramSent = await sendTelegramGroupMessage(formattedDate, user.nickname, availablePlayers, calendarUrl);
 
                 if (telegramSent) {
                     showMessage("Giorno sessione confermato! Notifica Telegram inviata nel gruppo.", "success");
