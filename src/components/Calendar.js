@@ -1,23 +1,72 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { getEvents, addEvent, deleteEvent, updateEvent, getSessionDays, toggleSessionDay } from "../firestoreService";
+import {
+    subscribeToEvents,
+    subscribeToSessionDays,
+    saveAvailability,
+    deleteEvent,
+    countAvailableOnDate,
+    toggleSessionDay,
+    EVENT_TYPES
+} from "../firestoreService";
 import { sendTelegramGroupMessage, sendTelegramFivePlayersMessage, sendTelegramStatusChangeMessage } from "../telegramService";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, MenuItem, Box, Typography, Divider, IconButton, Tooltip, CircularProgress } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, MenuItem, FormControl, InputLabel, Box, Typography, Divider, IconButton, Tooltip, CircularProgress } from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import StarIcon from '@mui/icons-material/Star';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../firebaseConfig";
 import itLocale from '@fullcalendar/core/locales/it';
 import { useSwipeable } from 'react-swipeable';
+
+// Orario di default della sessione (usato sia per il link nel messaggio Telegram
+// sia per il pulsante "Aggiungi a Google Calendar")
+const SESSION_START_TIME = "210000";
+const SESSION_END_TIME = "233000";
+const SESSION_TITLE = "Sessione D&D";
+
+// Soglia oltre la quale scatta la notifica "gruppo al completo"
+const FULL_PARTY_SIZE = 5;
+
+const COLORS = {
+    Disponibile: "#34A853",
+    Forse: "#F4B400",
+    Assente: "#EA4335"
+};
+
+const colorForType = (eventType) => {
+    if (eventType === "Disponibile") return COLORS.Disponibile;
+    // "Disponibilità Limitata" è un vecchio tipo rimasto su dati storici
+    if (eventType === "Forse" || eventType === "Disponibilità Limitata") return COLORS.Forse;
+    return COLORS.Assente;
+};
+
+// Converte una Date locale in "YYYY-MM-DD" senza passare da UTC
+const toDateStr = (date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const formatItalianDate = (dateStr) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Intl.DateTimeFormat('it-IT', {
+        weekday: 'long',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    }).format(new Date(year, month - 1, day));
+};
+
+const buildGoogleCalendarUrl = (dateStr) => {
+    const compact = dateStr.replace(/-/g, '');
+    const dates = `${compact}T${SESSION_START_TIME}/${compact}T${SESSION_END_TIME}`;
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(SESSION_TITLE)}&dates=${dates}`;
+};
 
 const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
     const [events, setEvents] = useState([]);
     const [sessionDays, setSessionDays] = useState([]);
+    const [visibleRange, setVisibleRange] = useState(null);
     const [open, setOpen] = useState(false);
     const [isBulkMode, setIsBulkMode] = useState(false);
     const [selectedDates, setSelectedDates] = useState([]);
@@ -29,41 +78,58 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
     const [swipeOffset, setSwipeOffset] = useState(0);
     const [isAnimating, setIsAnimating] = useState(false);
 
+    // Aggiorna l'intervallo visibile quando si cambia mese/vista.
+    // Confronto sui valori per non rigenerare l'oggetto (e la sottoscrizione) inutilmente.
+    const handleDatesSet = useCallback((info) => {
+        const start = toDateStr(info.start);
+        const end = toDateStr(info.end);
+        setVisibleRange(prev =>
+            prev && prev.start === start && prev.end === end ? prev : { start, end }
+        );
+    }, []);
+
+    // Ascolto realtime limitato alle date effettivamente mostrate
     useEffect(() => {
-        if (user) {
-            fetchEvents();
-            fetchSessionDays();
+        if (!user || !visibleRange) return;
 
-            const intervalId = setInterval(() => {
-                fetchEvents();
-                fetchSessionDays();
-            }, 30000);
+        const unsubscribe = subscribeToEvents(
+            visibleRange.start,
+            visibleRange.end,
+            (eventList) => {
+                setEvents(eventList.map(event => ({
+                    id: event.id,
+                    title: event.nickname,
+                    start: event.date,
+                    color: colorForType(event.eventType),
+                    userId: event.userId,
+                    eventType: event.eventType
+                })));
+            },
+            () => showMessage("Impossibile caricare le disponibilità.", "error")
+        );
 
-            return () => clearInterval(intervalId);
-        }
-    }, [user]);
+        return () => unsubscribe();
+    }, [user, visibleRange, showMessage]);
 
     useEffect(() => {
-        if (!isBulkMode) {
-            setSelectedDates([]);
-        }
+        if (!user) return;
+        const unsubscribe = subscribeToSessionDays(
+            setSessionDays,
+            () => showMessage("Impossibile caricare i giorni sessione.", "error")
+        );
+        return () => unsubscribe();
+    }, [user, showMessage]);
+
+    // La selezione riparte vuota sia entrando sia uscendo dalla modalità multipla:
+    // altrimenti il giorno aperto poco prima resterebbe spuntato senza averlo scelto.
+    useEffect(() => {
+        setSelectedDates([]);
     }, [isBulkMode]);
 
-    const fetchEvents = async () => {
-        const eventList = await getEvents();
-        setEvents(eventList.map(event => ({
-            id: event.id,
-            title: event.nickname,
-            start: event.date,
-            color: event.eventType === "Disponibile" ? "#34A853" : (event.eventType === "Forse" || event.eventType === "Disponibilità Limitata") ? "#F4B400" : "#EA4335",
-            userId: event.userId,
-            eventType: event.eventType
-        })));
-    };
-
-    const fetchSessionDays = async () => {
-        const days = await getSessionDays();
-        setSessionDays(days);
+    const closeDialog = () => {
+        setOpen(false);
+        setExistingEvent(null);
+        setEventType("");
     };
 
     const handleDateClick = (info) => {
@@ -75,11 +141,14 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
         }
 
         const clickedDate = info.dateStr;
-        const eventOnDate = events.find(event => event.start === clickedDate);
+        // Solo il PROPRIO evento va aperto in modifica: quelli altrui non sono modificabili
+        const ownEventOnDate = events.find(
+            event => event.start === clickedDate && event.userId === user.uid
+        );
 
         setSelectedDates([clickedDate]);
-        setExistingEvent(eventOnDate || null);
-        setEventType(eventOnDate ? eventOnDate.eventType : "");
+        setExistingEvent(ownEventOnDate || null);
+        setEventType(ownEventOnDate ? ownEventOnDate.eventType : "");
         setOpen(true);
     };
 
@@ -113,8 +182,7 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
     };
 
     const dayCellClassNames = (arg) => {
-        const d = arg.date;
-        const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const formattedDate = toDateStr(arg.date);
 
         let classes = [];
         if (isBulkMode) {
@@ -125,18 +193,18 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
         }
 
         const dayEvents = events.filter(e => e.start === formattedDate);
-        const countDisponibile = dayEvents.filter(e => e.color === "#34A853").length;
-        const countLimitata = dayEvents.filter(e => e.color === "#F4B400").length;
-        const countForse = dayEvents.filter(e => e.color === "#EA4335").length;
+        const countDisponibile = dayEvents.filter(e => e.color === COLORS.Disponibile).length;
+        const countForse = dayEvents.filter(e => e.color === COLORS.Forse).length;
+        const countAssente = dayEvents.filter(e => e.color === COLORS.Assente).length;
 
         if (sessionDays.includes(formattedDate)) {
             classes.push('session-day');
         }
 
-        if (countForse === 0) {
+        if (countAssente === 0) {
             if (countDisponibile >= 4) {
                 classes.push('has-big-crown');
-            } else if ((countDisponibile + countLimitata) >= 4) {
+            } else if ((countDisponibile + countForse) >= 4) {
                 classes.push('has-small-crown');
             }
         } else {
@@ -155,27 +223,19 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
             if (isAdded) {
                 showMessage("Giorno sessione impostato! Invio notifica...", "info");
 
-                // Prepara data parlante (es: lunedì 12/05/2026)
-                const dateObj = new Date(dateStr);
-                const formattedDate = new Intl.DateTimeFormat('it-IT', {
-                    weekday: 'long',
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric'
-                }).format(dateObj);
+                const formattedDate = formatItalianDate(dateStr);
 
-                // Prepara lista giocatori disponibili o "forse"
+                // Lista giocatori disponibili o "forse"
                 const availablePlayers = events
-                    .filter(e => e.start === dateStr && (e.color === "#34A853" || e.color === "#F4B400"))
+                    .filter(e => e.start === dateStr && (e.color === COLORS.Disponibile || e.color === COLORS.Forse))
                     .map(e => e.title);
 
-                // Genera URL di Google Calendar per il bot di Telegram
-                const startStr = dateStr.replace(/-/g, '') + 'T210000';
-                const endStr = dateStr.replace(/-/g, '') + 'T233000';
-                const title = encodeURIComponent("Sessione D&D");
-                const calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startStr}/${endStr}`;
-
-                const telegramSent = await sendTelegramGroupMessage(formattedDate, user.nickname, availablePlayers, calendarUrl);
+                const telegramSent = await sendTelegramGroupMessage(
+                    formattedDate,
+                    user.nickname,
+                    availablePlayers,
+                    buildGoogleCalendarUrl(dateStr)
+                );
 
                 if (telegramSent) {
                     showMessage("Giorno sessione confermato! Notifica Telegram inviata nel gruppo.", "success");
@@ -185,155 +245,100 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
             } else {
                 showMessage("Giorno sessione rimosso.", "info");
             }
-            fetchSessionDays();
         } catch (error) {
+            console.error("handleToggleSessionDay error:", error);
             showMessage("Errore nell'impostare il giorno sessione.", "error");
         } finally {
             setIsProcessingSession(false);
-            setOpen(false);
+            closeDialog();
         }
     };
 
     const handleEventSelection = async () => {
+        if (!EVENT_TYPES.includes(eventType)) {
+            showMessage("Seleziona un tipo di disponibilità.", "warning");
+            return;
+        }
+        if (selectedDates.length === 0) {
+            showMessage("Nessuna data selezionata.", "warning");
+            return;
+        }
+
+        const wasEditing = Boolean(existingEvent);
         setIsSaving(true);
         try {
-            let datesJustSetToDisponibile = [];
-            let datesDroppedFromFive = [];
-
-            if (isBulkMode && selectedDates.length > 0) {
-                for (const dateStr of selectedDates) {
-                    const prevEvents = events.filter(e => e.start === dateStr && e.color === "#34A853");
-                    const wasDisponibile = prevEvents.some(e => e.userId === user.uid);
-                    if (!wasDisponibile && eventType === "Disponibile") {
-                        datesJustSetToDisponibile.push(dateStr);
-                    }
-                    if (wasDisponibile && eventType !== "Disponibile" && prevEvents.length >= 5) {
-                        datesDroppedFromFive.push({ dateStr, newStatus: eventType });
-                    }
-
-                    const eventRef = collection(db, "events");
-                    const q = query(eventRef, where("userId", "==", user.uid), where("date", "==", dateStr));
-                    const querySnapshot = await getDocs(q);
-                    if (querySnapshot.empty) {
-                        await addEvent(user.uid, dateStr, eventType, user.nickname);
-                    } else {
-                        const existingDoc = querySnapshot.docs[0];
-                        await updateEvent(existingDoc.id, eventType);
-                    }
-                }
-                setSelectedDates([]);
-                setIsBulkMode(false);
-            } else if (existingEvent && existingEvent.userId === user.uid) {
-                const wasDisponibile = existingEvent.eventType === "Disponibile" || existingEvent.color === "#34A853";
-                if (!wasDisponibile && eventType === "Disponibile") {
-                    datesJustSetToDisponibile.push(selectedDates[0]);
-                }
-                const prevEvents = events.filter(e => e.start === selectedDates[0] && e.color === "#34A853");
-                if (wasDisponibile && eventType !== "Disponibile" && prevEvents.length >= 5) {
-                    datesDroppedFromFive.push({ dateStr: selectedDates[0], newStatus: eventType });
-                }
-                // Modifica evento singolo esistente
-                await updateEvent(existingEvent.id, eventType);
-            } else {
-                if (eventType === "Disponibile") {
-                    datesJustSetToDisponibile.push(selectedDates[0]);
-                }
-                // Creazione evento singolo
-                const dateStr = selectedDates[0];
-                const eventRef = collection(db, "events");
-                const q = query(eventRef, where("userId", "==", user.uid), where("date", "==", dateStr));
-                const querySnapshot = await getDocs(q);
-                if (!querySnapshot.empty) {
-                    throw new Error("Hai già un evento per questa data.");
-                }
-                await addEvent(user.uid, dateStr, eventType, user.nickname);
-            }
-            fetchEvents();
-            setOpen(false);
-            showMessage(existingEvent ? "Evento aggiornato!" : "Eventi salvati con successo!", "success");
-
-            // Controllo 5 giocatori per le date modificate
-            for (const dateStr of datesJustSetToDisponibile) {
-                const eventRef = collection(db, "events");
-                const qDay = query(eventRef, where("date", "==", dateStr), where("eventType", "==", "Disponibile"));
-                const qSnap = await getDocs(qDay);
-                if (qSnap.docs.length === 5) {
-                    const players = qSnap.docs.map(doc => doc.data().nickname);
-                    
-                    const dateObj = new Date(dateStr);
-                    const formattedDate = new Intl.DateTimeFormat('it-IT', {
-                        weekday: 'long',
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric'
-                    }).format(dateObj);
-                    
-                    await sendTelegramFivePlayersMessage(formattedDate, players);
-                    showMessage(`Raggiunti 5 giocatori per il ${formattedDate}. Notifica Telegram inviata!`, "success");
-                }
+            // Conteggi PRIMA della modifica, per capire quali soglie vengono attraversate
+            const previousCounts = new Map();
+            const wasAvailable = new Map();
+            for (const dateStr of selectedDates) {
+                const availableOnDate = events.filter(e => e.start === dateStr && e.color === COLORS.Disponibile);
+                previousCounts.set(dateStr, availableOnDate.length);
+                wasAvailable.set(dateStr, availableOnDate.some(e => e.userId === user.uid));
             }
 
-            // Controllo notifiche calo di disponibilità da 5
-            for (const drop of datesDroppedFromFive) {
-                const dateObj = new Date(drop.dateStr);
-                const formattedDate = new Intl.DateTimeFormat('it-IT', {
-                    weekday: 'long',
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric'
-                }).format(dateObj);
+            await saveAvailability(user.uid, user.nickname, selectedDates, eventType);
 
-                await sendTelegramStatusChangeMessage(formattedDate, user.nickname, drop.newStatus);
+            setSelectedDates([]);
+            setIsBulkMode(false);
+            closeDialog();
+            showMessage(wasEditing ? "Evento aggiornato!" : "Eventi salvati con successo!", "success");
+
+            for (const dateStr of selectedDates) {
+                const previousCount = previousCounts.get(dateStr);
+                const formattedDate = formatItalianDate(dateStr);
+
+                if (eventType === "Disponibile" && !wasAvailable.get(dateStr)) {
+                    // Notifica solo quando si ATTRAVERSA la soglia, non a ogni salvataggio sopra di essa
+                    const { count, players } = await countAvailableOnDate(dateStr);
+                    if (previousCount < FULL_PARTY_SIZE && count >= FULL_PARTY_SIZE) {
+                        const sent = await sendTelegramFivePlayersMessage(formattedDate, players);
+                        showMessage(
+                            sent
+                                ? `Raggiunti ${FULL_PARTY_SIZE} giocatori per il ${formattedDate}. Notifica Telegram inviata!`
+                                : `Raggiunti ${FULL_PARTY_SIZE} giocatori per il ${formattedDate}.`,
+                            "success"
+                        );
+                    }
+                } else if (eventType !== "Disponibile" && wasAvailable.get(dateStr) && previousCount >= FULL_PARTY_SIZE) {
+                    await sendTelegramStatusChangeMessage(formattedDate, user.nickname, eventType);
+                }
             }
         } catch (error) {
-            console.error("handleEventSelection error:", error.message);
-            showMessage(error.message, "error");
+            console.error("handleEventSelection error:", error);
+            showMessage(error.message || "Errore nel salvataggio.", "error");
         } finally {
             setIsSaving(false);
         }
     };
 
     const handleDeleteEvent = async () => {
-        if (existingEvent) {
-            try {
-                const wasDisponibile = existingEvent.eventType === "Disponibile" || existingEvent.color === "#34A853";
-                const prevEvents = events.filter(e => e.start === existingEvent.start && e.color === "#34A853");
-                const notifyDrop = wasDisponibile && prevEvents.length >= 5;
-                const droppedDateStr = existingEvent.start;
+        if (!existingEvent) return;
 
-                await deleteEvent(existingEvent.id, user.uid);
-                fetchEvents();
-                showMessage("Evento eliminato con successo", "info");
+        try {
+            const wasAvailable = existingEvent.eventType === "Disponibile";
+            const previousCount = events.filter(
+                e => e.start === existingEvent.start && e.color === COLORS.Disponibile
+            ).length;
+            const notifyDrop = wasAvailable && previousCount >= FULL_PARTY_SIZE;
+            const droppedDateStr = existingEvent.start;
 
-                if (notifyDrop) {
-                    const dateObj = new Date(droppedDateStr);
-                    const formattedDate = new Intl.DateTimeFormat('it-IT', {
-                        weekday: 'long',
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric'
-                    }).format(dateObj);
-                    await sendTelegramStatusChangeMessage(formattedDate, user.nickname, "Cancellata");
-                }
-            } catch (error) {
-                console.error(error.message);
-                showMessage("Non sei autorizzato a cancellare questo evento.", "error");
+            await deleteEvent(existingEvent.id, user.uid);
+            closeDialog();
+            showMessage("Evento eliminato con successo", "info");
+
+            if (notifyDrop) {
+                await sendTelegramStatusChangeMessage(formatItalianDate(droppedDateStr), user.nickname, "Cancellata");
             }
+        } catch (error) {
+            console.error("handleDeleteEvent error:", error);
+            showMessage(error.message || "Non sei autorizzato a cancellare questo evento.", "error");
+            closeDialog();
         }
-        setOpen(false);
     };
 
     const handleAddToGoogleCalendar = () => {
         if (!selectedDates || selectedDates.length === 0) return;
-        const dateStr = selectedDates[0];
-        const startStr = dateStr.replace(/-/g, '') + 'T210000';
-        const endStr = dateStr.replace(/-/g, '') + 'T233000';
-        
-        const title = encodeURIComponent("Sessione D&D");
-        const dates = `${startStr}/${endStr}`;
-        const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dates}`;
-        
-        window.open(url, '_blank');
+        window.open(buildGoogleCalendarUrl(selectedDates[0]), '_blank', 'noopener,noreferrer');
     };
 
     const handlers = useSwipeable({
@@ -348,7 +353,7 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
             setIsAnimating(true);
             setTimeout(() => {
                 if (calendarRef.current) calendarRef.current.getApi().next();
-                setSwipeOffset(50); // Mettilo "fuori" a destra per ricomparire 
+                setSwipeOffset(50); // Mettilo "fuori" a destra per ricomparire
                 requestAnimationFrame(() => {
                     setSwipeOffset(0); // Scivola indietro dolcemente
                     setTimeout(() => setIsAnimating(false), 300);
@@ -367,27 +372,41 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                 });
             }, 150);
         },
+        // Rete di sicurezza: se il gesto finisce senza che scatti nessun onSwiped*
+        // il calendario resterebbe spostato di lato.
+        onTouchEndOrOnMouseUp: () => {
+            if (!isAnimating) setSwipeOffset(0);
+        },
         onSwipedUp: () => setSwipeOffset(0),
         onSwipedDown: () => setSwipeOffset(0),
         preventScrollOnSwipe: false,
         trackMouse: false
     });
 
+    const selectedDate = selectedDates[0];
+
+    // react-swipeable non gestisce il touchcancel (tipico su mobile quando il browser
+    // prende il controllo per lo scroll verticale): senza questo reset il calendario
+    // resta storto finché non si fa un altro swipe.
+    const handleTouchCancel = () => {
+        if (!isAnimating) setSwipeOffset(0);
+    };
+
     return (
-        <div {...handlers} style={{ overflow: "hidden" }}>
+        <div {...handlers} onTouchCancel={handleTouchCancel} style={{ overflow: "hidden" }}>
             <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="center" alignItems="center" mb={2} mt={1} gap={2}>
                 {/* Legenda Colori */}
                 <Box display="flex" gap={2} flexWrap="wrap" justifyContent="center">
                     <Box display="flex" alignItems="center" gap={1}>
-                        <Box width={14} height={14} bgcolor="#34A853" borderRadius="50%" />
+                        <Box width={14} height={14} bgcolor={COLORS.Disponibile} borderRadius="50%" />
                         <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>Disponibile</Typography>
                     </Box>
                     <Box display="flex" alignItems="center" gap={1}>
-                        <Box width={14} height={14} bgcolor="#F4B400" borderRadius="50%" />
+                        <Box width={14} height={14} bgcolor={COLORS.Forse} borderRadius="50%" />
                         <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>Forse</Typography>
                     </Box>
                     <Box display="flex" alignItems="center" gap={1}>
-                        <Box width={14} height={14} bgcolor="#EA4335" borderRadius="50%" />
+                        <Box width={14} height={14} bgcolor={COLORS.Assente} borderRadius="50%" />
                         <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>Assente</Typography>
                     </Box>
                 </Box>
@@ -405,6 +424,7 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                     plugins={[dayGridPlugin, interactionPlugin]}
                     initialView="dayGridMonth"
                     events={events}
+                    datesSet={handleDatesSet}
                     dayCellClassNames={dayCellClassNames}
                     eventClassNames={eventClassNames}
                     dateClick={handleDateClick}
@@ -424,38 +444,39 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                     locale={itLocale}
                     dayHeaderContent={(args) => args.text.charAt(0).toUpperCase() + args.text.slice(1)}
                     titleFormat={{ year: 'numeric', month: 'long' }}
-                    className="fc"
                 />
             </div>
-            <Dialog open={open} onClose={() => setOpen(false)}>
+            <Dialog open={open} onClose={closeDialog}>
                 <DialogTitle>
                     {existingEvent
-                        ? `Modifica Evento (${selectedDates[0]})`
+                        ? `Modifica Evento (${selectedDate})`
                         : isBulkMode
                             ? `Aggiungi Eventi (Selezionati ${selectedDates.length} giorni)`
-                            : `Aggiungi Evento (${selectedDates[0]})`
+                            : `Aggiungi Evento (${selectedDate})`
                     }
                 </DialogTitle>
                 <DialogContent>
-                    <Select
-                        label="Tipo di Evento"
-                        variant="outlined"
-                        fullWidth
-                        margin="normal"
-                        value={eventType}
-                        onChange={(e) => setEventType(e.target.value)}
-                    >
-                        <MenuItem value="Disponibile">Disponibile</MenuItem>
-                        <MenuItem value="Forse">Forse</MenuItem>
-                        <MenuItem value="Assente">Assente</MenuItem>
-                    </Select>
+                    <FormControl fullWidth margin="normal">
+                        <InputLabel id="event-type-label">Tipo di Evento</InputLabel>
+                        <Select
+                            labelId="event-type-label"
+                            label="Tipo di Evento"
+                            variant="outlined"
+                            value={eventType}
+                            onChange={(e) => setEventType(e.target.value)}
+                        >
+                            {EVENT_TYPES.map(type => (
+                                <MenuItem key={type} value={type}>{type}</MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
                     {existingEvent && (
-                        <Button onClick={handleDeleteEvent} color="error" sx={{ mt: 1 }}>
+                        <Button onClick={handleDeleteEvent} color="error" disabled={isSaving} sx={{ mt: 1 }}>
                             Elimina Evento
                         </Button>
                     )}
 
-                    {!isBulkMode && sessionDays.includes(selectedDates[0]) && (
+                    {!isBulkMode && sessionDays.includes(selectedDate) && (
                         <>
                             <Divider sx={{ my: 1 }} />
                             <Button
@@ -477,20 +498,20 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                                 Opzioni Master
                             </Typography>
                             <Button
-                                variant={sessionDays.includes(selectedDates[0]) ? "outlined" : "contained"}
+                                variant={sessionDays.includes(selectedDate) ? "outlined" : "contained"}
                                 color="warning"
                                 fullWidth
                                 onClick={handleToggleSessionDay}
                                 disabled={isProcessingSession}
                                 startIcon={<StarIcon />}
                             >
-                                {sessionDays.includes(selectedDates[0]) ? "Rimuovi Giorno Sessione" : "Imposta Giorno Sessione"}
+                                {sessionDays.includes(selectedDate) ? "Rimuovi Giorno Sessione" : "Imposta Giorno Sessione"}
                             </Button>
                         </>
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setOpen(false)} color="default" disabled={isSaving}>Annulla</Button>
+                    <Button onClick={closeDialog} color="inherit" disabled={isSaving}>Annulla</Button>
                     <Button onClick={handleEventSelection} color="primary" disabled={isProcessingSession || isSaving}>
                         {isSaving ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
                         {isSaving ? "Salvando..." : (existingEvent ? "Aggiorna Evento" : "Aggiungi Evento")}
@@ -563,7 +584,7 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                                 boxShadow: 2,
                                 fontWeight: 'bold'
                             }}>
-                                {selectedDates.length} d
+                                {selectedDates.length} g
                             </Box>
                         )}
 

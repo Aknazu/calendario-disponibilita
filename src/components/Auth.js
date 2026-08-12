@@ -3,9 +3,11 @@ import { TextField, Button, Box, Typography } from "@mui/material";
 import GoogleIcon from "@mui/icons-material/Google";
 import { auth } from "../firebaseConfig";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { addUserToFirestore, getUserNickname } from "../firestoreService";
+import { NICKNAME_MAX_LENGTH, PENDING_NICKNAME_KEY } from "../constants";
 
-const Auth = ({ setUser, showMessage, setShowNicknameDialog }) => {
+// Il profilo Firestore viene creato dal listener onAuthStateChanged in App.js:
+// qui ci limitiamo ad autenticare e a passare il nickname scelto.
+const Auth = ({ showMessage }) => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [nickname, setNickname] = useState("");
@@ -25,17 +27,23 @@ const Auth = ({ setUser, showMessage, setShowNicknameDialog }) => {
 
     const handleRegister = async () => {
         try {
-            if (!nickname) {
+            const trimmedNickname = nickname.trim();
+
+            if (!trimmedNickname) {
                 showMessage("Il nickname è obbligatorio.", "warning");
                 return;
             }
-
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            const user = userCredential.user;
-
-            await addUserToFirestore(user.uid, nickname, user.email);
-            setUser({ ...user, nickname });
+            if (trimmedNickname.length > NICKNAME_MAX_LENGTH) {
+                showMessage(`Il nickname non può superare i ${NICKNAME_MAX_LENGTH} caratteri.`, "warning");
+                return;
+            }
+            // Il controllo sui duplicati richiede di essere autenticati (lo impongono
+            // le regole Firestore): lo fa App.js subito dopo il login, e se il nome
+            // risulta occupato mostra il dialog per sceglierne un altro.
+            sessionStorage.setItem(PENDING_NICKNAME_KEY, trimmedNickname);
+            await createUserWithEmailAndPassword(auth, email, password);
         } catch (error) {
+            sessionStorage.removeItem(PENDING_NICKNAME_KEY);
             if (error.code === "auth/weak-password") {
                 showMessage("La password è troppo debole. Deve contenere almeno 6 caratteri.", "warning");
             } else {
@@ -47,20 +55,7 @@ const Auth = ({ setUser, showMessage, setShowNicknameDialog }) => {
     const handleGoogleLogin = async () => {
         const provider = new GoogleAuthProvider();
         try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-
-            let savedNickname = await getUserNickname(user.uid);
-            if (!savedNickname) {
-                savedNickname = "Anonimo";
-                await addUserToFirestore(user.uid, savedNickname, user.email);
-            }
-
-            setUser({ ...user, nickname: savedNickname });
-
-            if (savedNickname === "Anonimo") {
-                setShowNicknameDialog(true);
-            }
+            await signInWithPopup(auth, provider);
         } catch (error) {
             showMessage("Errore nel login con Google.", "error");
         }
@@ -94,6 +89,7 @@ const Auth = ({ setUser, showMessage, setShowNicknameDialog }) => {
                     margin="normal"
                     value={nickname}
                     onChange={(e) => setNickname(e.target.value)}
+                    inputProps={{ maxLength: NICKNAME_MAX_LENGTH }}
                 />
             )}
             <Box display="flex" justifyContent="space-between" mt={2}>
@@ -108,7 +104,6 @@ const Auth = ({ setUser, showMessage, setShowNicknameDialog }) => {
                 )}
                 <Button
                     variant="outlined"
-                    color="default"
                     fullWidth
                     onClick={handleGoogleLogin}
                     startIcon={<GoogleIcon />}

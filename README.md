@@ -9,7 +9,7 @@ Un'applicazione web elegante e intuitiva costruita in React per gestire e organi
 - **Gestione delle Disponibilità:** I giocatori possono segnare i giorni in cui sono *Disponibili*, *Forse* o *Assenti*.
 - **Inserimento Multiplo:** Modalità "bulk" per selezionare velocemente più giorni con un solo click e aggiornare il proprio stato.
 - **Supporto Visivo Immediato:** Corona da Re/Regina nei giorni in cui ci sono almeno 4 o 5 persone disponibili, per facilitare il colpo d'occhio.
-- **Gestione "Master":** L'utente Master ha i poteri per confermare il giorno della Sessione in base alle disponibilità.
+- **Gestione "Master":** L'utente Master ha i poteri per confermare il giorno della Sessione in base alle disponibilità. I permessi sono assegnati lato server (vedi *Come si nomina un Master*).
 - **Aggiunta a Google Calendar:** Esportazione veloce al proprio calendario personale con 1-click.
 - **Notifiche Telegram Automatiche:** 
   - Notifica al gruppo quando viene **confermata la sessione**.
@@ -41,22 +41,69 @@ npm install
 ### 2. Configura le variabili d'ambiente
 Crea un file `.env` nella root del progetto:
 ```env
-REACT_APP_FIREBASE_API_KEY=La_Tua_Api_Key
-REACT_APP_FIREBASE_AUTH_DOMAIN=il-tuo-app.firebaseapp.com
-REACT_APP_FIREBASE_PROJECT_ID=il-tuo-project-id
-REACT_APP_FIREBASE_STORAGE_BUCKET=il-tuo-bucket.appspot.com
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=1234567890
-REACT_APP_FIREBASE_APP_ID=1:12345:web:abcd
+REACT_APP_API_KEY=La_Tua_Api_Key
+REACT_APP_AUTH_DOMAIN=il-tuo-app.firebaseapp.com
+REACT_APP_PROJECT_ID=il-tuo-project-id
+REACT_APP_STORAGE_BUCKET=il-tuo-bucket.appspot.com
+REACT_APP_MESSAGING_SENDER_ID=1234567890
+REACT_APP_APP_ID=1:12345:web:abcd
 
 # Webhook per ricevere le chiamate da Make.com -> Telegram
 REACT_APP_MAKE_WEBHOOK_URL=https://hook.euX.make.com/...
 ```
 
-### 3. Avvia l'ambiente di sviluppo
+> ⚠️ Tutte le variabili `REACT_APP_*` finiscono nel bundle JavaScript pubblico: non
+> sono segrete. La sicurezza dei dati è garantita dalle regole Firestore, non da qui.
+
+### 3. Pubblica le regole di sicurezza Firestore
+Le regole in `firestore.rules` sono la vera barriera di sicurezza dell'app:
+impediscono di modificare le disponibilità altrui e riservano i giorni sessione ai Master.
+
+```bash
+npx firebase-tools deploy --only firestore:rules
+```
+In alternativa si possono incollare a mano in *Firebase Console ➔ Firestore ➔ Regole*.
+
+### 4. Avvia l'ambiente di sviluppo
 ```bash
 npm start
 ```
 L'applicazione girerà su [http://localhost:3000](http://localhost:3000).
+
+### 5. (Opzionale) Sviluppo sugli emulatori
+Per lavorare senza toccare i dati di produzione — e senza far partire notifiche
+Telegram vere — avvia prima gli emulatori Firebase:
+```bash
+npx firebase-tools@13 emulators:start --only firestore,auth
+```
+e in un altro terminale:
+```bash
+npm run start:emulator
+```
+In questa modalità il webhook Make è disattivato di proposito.
+
+Le regole di sicurezza hanno una suite di test (29 casi: proprietà degli eventi,
+permessi Master, validazione dei nickname):
+```bash
+npm run test:rules
+```
+> Gli emulatori richiedono Java. `firebase-tools` 13 funziona con Java 17+,
+> le versioni 15+ pretendono Java 21.
+
+---
+
+## 👑 Come si nomina un Master
+
+Non esiste più una password Master: chiunque poteva leggerla dal database.
+Ora i permessi si assegnano lato server tramite la collection `masters`.
+
+1. *Firebase Console ➔ Authentication ➔ Users*: copia lo **User UID** della persona.
+2. *Firestore ➔ Data*: crea nella collection `masters` un documento il cui **ID è quell'UID**
+   (il contenuto è irrilevante, basta un campo qualsiasi, es. `nickname: "NomeMaster"`).
+3. La persona ricarica l'app: la stellina compare in alto e le opzioni Master sono attive.
+
+Per revocare i permessi basta cancellare il documento. Le regole Firestore impediscono
+al browser di scrivere in `masters`: l'unica via è la console.
 
 ---
 
