@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Calendar from "./components/Calendar";
 import Auth from "./components/Auth";
 import { CssBaseline, ThemeProvider, Container, Typography, AppBar, Toolbar, Button, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Box, TextField, Snackbar, Alert, Menu, MenuItem, ListItemIcon, ListItemText, Divider, CircularProgress, Tooltip } from "@mui/material";
@@ -10,14 +10,17 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import EditIcon from '@mui/icons-material/Edit';
 import { auth } from "./firebaseConfig";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { addUserToFirestore, getUserNickname, updateUserNickname, isNicknameTaken, verifyMasterPassword } from "./firestoreService";
+import { addUserToFirestore, getUserNickname, updateUserNickname, isNicknameTaken, isUserMaster } from "./firestoreService";
+
 
 import { lightTheme, darkTheme } from './theme';
+import { NICKNAME_MAX_LENGTH, PENDING_NICKNAME_KEY } from './constants';
 
 function App() {
     const [user, setUser] = useState(null);
     const [nickname, setNickname] = useState("");
     const [showNicknameDialog, setShowNicknameDialog] = useState(false);
+    const [isSavingNickname, setIsSavingNickname] = useState(false);
     const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "info" });
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
     const [darkMode, setDarkMode] = useState(() => {
@@ -25,44 +28,51 @@ function App() {
         return savedMode === "true";
     });
 
-    // Master Mode
+    // Master Mode: assegnata lato server tramite la collection "masters" in Firestore
     const [isMaster, setIsMaster] = useState(false);
-    const [showMasterDialog, setShowMasterDialog] = useState(false);
-    const [masterPassword, setMasterPassword] = useState("");
-    const [isCheckingPassword, setIsCheckingPassword] = useState(false);
 
-    const showMessage = (message, severity = "info") => {
+    // Identità stabile: Calendar la usa come dipendenza delle sottoscrizioni realtime
+    const showMessage = useCallback((message, severity = "info") => {
         setSnackbar({ open: true, message, severity });
-    };
+    }, []);
 
     const handleCloseSnackbar = (event, reason) => {
         if (reason === 'clickaway') return;
-        setSnackbar({ ...snackbar, open: false });
+        setSnackbar((prev) => ({ ...prev, open: false }));
     };
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-            if (currentUser) {
-                let savedNickname = await getUserNickname(currentUser.uid);
-                if (!savedNickname) {
-                    savedNickname = "Anonimo";
-                }
-
-                // Assicurati che l'email sia aggiornata nel DB in caso di vecchi account
-                if (currentUser.email) {
-                    await addUserToFirestore(currentUser.uid, savedNickname, currentUser.email);
-                } else {
-                    await addUserToFirestore(currentUser.uid, savedNickname);
-                }
-
-                setUser({ ...currentUser, nickname: savedNickname });
-
-                if (savedNickname === "Anonimo") {
-                    setShowNicknameDialog(true);
-                }
-            } else {
+            if (!currentUser) {
                 setUser(null);
+                setIsMaster(false);
+                return;
             }
+
+            let savedNickname = await getUserNickname(currentUser.uid);
+
+            // Primo accesso: il nickname scelto in fase di registrazione viaggia
+            // via sessionStorage. Il profilo Firestore viene scritto solo qui,
+            // così non ci sono due scritture in gara sullo stesso documento.
+            if (!savedNickname) {
+                const pendingNickname = sessionStorage.getItem(PENDING_NICKNAME_KEY);
+                sessionStorage.removeItem(PENDING_NICKNAME_KEY);
+                if (pendingNickname && !(await isNicknameTaken(pendingNickname, currentUser.uid))) {
+                    savedNickname = pendingNickname;
+                }
+            }
+
+            if (savedNickname) {
+                // Tiene allineata l'email nel DB anche per i vecchi account
+                await addUserToFirestore(currentUser.uid, savedNickname, currentUser.email);
+                setUser({ ...currentUser, nickname: savedNickname });
+            } else {
+                setUser({ ...currentUser, nickname: "Anonimo" });
+                setNickname("");
+                setShowNicknameDialog(true);
+            }
+
+            setIsMaster(await isUserMaster(currentUser.uid));
         });
 
         return () => unsubscribe();
@@ -80,36 +90,39 @@ function App() {
     };
 
     const handleNicknameUpdate = async () => {
-        if (!nickname) {
+        const trimmedNickname = nickname.trim();
+
+        if (!trimmedNickname) {
             showMessage("Il nickname è obbligatorio.", "warning");
             return;
         }
-
-        // Verifica se il nickname è già in uso da un'altra persona
-        const isTaken = await isNicknameTaken(nickname, user.uid);
-        if (isTaken) {
-            showMessage("Questo nickname è già in uso da un'altra persona.", "error");
+        if (trimmedNickname.length > NICKNAME_MAX_LENGTH) {
+            showMessage(`Il nickname non può superare i ${NICKNAME_MAX_LENGTH} caratteri.`, "warning");
+            return;
+        }
+        if (trimmedNickname.toLowerCase() === "anonimo") {
+            showMessage("Scegli un nickname diverso da \"Anonimo\".", "warning");
             return;
         }
 
-        await updateUserNickname(user.uid, nickname);
-        setUser((prevUser) => ({ ...prevUser, nickname }));
-        setShowNicknameDialog(false);
-        showMessage("Nickname aggiornato con successo!", "success");
-    };
+        setIsSavingNickname(true);
+        try {
+            const isTaken = await isNicknameTaken(trimmedNickname, user.uid);
+            if (isTaken) {
+                showMessage("Questo nickname è già in uso da un'altra persona.", "error");
+                return;
+            }
 
-    const handleMasterUnlock = async () => {
-        setIsCheckingPassword(true);
-        const isValid = await verifyMasterPassword(masterPassword);
-        setIsCheckingPassword(false);
-        
-        if (isValid) {
-            setIsMaster(true);
-            setShowMasterDialog(false);
-            setMasterPassword("");
-            showMessage("Master Mode attivata!", "success");
-        } else {
-            showMessage("Password errata.", "error");
+            await updateUserNickname(user.uid, trimmedNickname, user.email);
+            setUser((prevUser) => ({ ...prevUser, nickname: trimmedNickname }));
+            setNickname(trimmedNickname);
+            setShowNicknameDialog(false);
+            showMessage("Nickname aggiornato con successo!", "success");
+        } catch (error) {
+            console.error("handleNicknameUpdate error:", error);
+            showMessage("Errore nell'aggiornamento del nickname. Riprova.", "error");
+        } finally {
+            setIsSavingNickname(false);
         }
     };
 
@@ -160,7 +173,7 @@ function App() {
                                     anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
                                 >
                                     <MenuItem onClick={() => {
-                                        setNickname(user.nickname);
+                                        setNickname(user.nickname === "Anonimo" ? "" : user.nickname);
                                         setShowNicknameDialog(true);
                                         handleMenuClose();
                                     }}>
@@ -186,17 +199,6 @@ function App() {
                                         </ListItemText>
                                     </MenuItem>
 
-                                    {!isMaster && (
-                                        <MenuItem onClick={() => {
-                                            setShowMasterDialog(true);
-                                            handleMenuClose();
-                                        }}>
-                                            <ListItemIcon>
-                                                <img src={process.env.PUBLIC_URL + '/master-icon.png'} alt="Master Mode" style={{ width: '24px', height: '24px', objectFit: 'contain', borderRadius: '4px' }} />
-                                            </ListItemIcon>
-                                            <ListItemText>Sblocca Master Mode</ListItemText>
-                                        </MenuItem>
-                                    )}
                                     {isMaster && (
                                         <MenuItem disableRipple sx={{ cursor: 'default', '&:hover': { backgroundColor: 'transparent' } }}>
                                             <ListItemIcon>
@@ -229,12 +231,12 @@ function App() {
                 {user ? (
                     <Calendar user={user} darkMode={darkMode} setDarkMode={setDarkMode} showMessage={showMessage} isMaster={isMaster} />
                 ) : (
-                    <Auth setUser={setUser} showMessage={showMessage} setShowNicknameDialog={setShowNicknameDialog} />
+                    <Auth showMessage={showMessage} />
                 )}
             </Container>
             <Dialog
                 open={showNicknameDialog}
-                onClose={() => user && user.nickname !== "Anonimo" && setShowNicknameDialog(false)}
+                onClose={() => !isSavingNickname && user && user.nickname !== "Anonimo" && setShowNicknameDialog(false)}
             >
                 <DialogTitle>Imposta il tuo Nickname</DialogTitle>
                 <DialogContent>
@@ -245,41 +247,20 @@ function App() {
                         margin="normal"
                         value={nickname}
                         onChange={(e) => setNickname(e.target.value)}
+                        disabled={isSavingNickname}
+                        inputProps={{ maxLength: NICKNAME_MAX_LENGTH }}
+                        helperText={`Massimo ${NICKNAME_MAX_LENGTH} caratteri`}
                     />
                 </DialogContent>
                 <DialogActions>
                     {user && user.nickname !== "Anonimo" && (
-                        <Button onClick={() => setShowNicknameDialog(false)} color="default">
+                        <Button onClick={() => setShowNicknameDialog(false)} color="inherit" disabled={isSavingNickname}>
                             Annulla
                         </Button>
                     )}
-                    <Button onClick={handleNicknameUpdate} color="primary" variant="contained">
-                        Salva
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            <Dialog open={showMasterDialog} onClose={() => !isCheckingPassword && setShowMasterDialog(false)}>
-                <DialogTitle>Sblocca Master Mode</DialogTitle>
-                <DialogContent>
-                    <TextField
-                        label="Password Master"
-                        variant="outlined"
-                        fullWidth
-                        margin="normal"
-                        type="password"
-                        value={masterPassword}
-                        onChange={(e) => setMasterPassword(e.target.value)}
-                        disabled={isCheckingPassword}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setShowMasterDialog(false)} color="default" disabled={isCheckingPassword}>
-                        Annulla
-                    </Button>
-                    <Button onClick={handleMasterUnlock} color="primary" variant="contained" disabled={isCheckingPassword}>
-                        {isCheckingPassword ? <CircularProgress size={20} sx={{ mr: 1, color: "white" }} /> : null}
-                        {isCheckingPassword ? "Verifica..." : "Sblocca"}
+                    <Button onClick={handleNicknameUpdate} color="primary" variant="contained" disabled={isSavingNickname}>
+                        {isSavingNickname ? <CircularProgress size={20} sx={{ mr: 1, color: "white" }} /> : null}
+                        {isSavingNickname ? "Salvataggio..." : "Salva"}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -299,7 +280,7 @@ function App() {
                 <DialogTitle>Conferma Logout</DialogTitle>
                 <DialogContent>Sei sicuro di voler effettuare il logout?</DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setShowLogoutDialog(false)} color="default">Annulla</Button>
+                    <Button onClick={() => setShowLogoutDialog(false)} color="inherit">Annulla</Button>
                     <Button onClick={handleLogout} color="primary">Logout</Button>
                 </DialogActions>
             </Dialog>

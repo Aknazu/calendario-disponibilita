@@ -1,0 +1,73 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Un utente è Master se esiste un documento con il suo uid nella
+    // collection "masters". La verifica avviene sul server: il client
+    // non può falsificarla.
+    function isMaster() {
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/masters/$(request.auth.uid));
+    }
+
+    function isValidEventType(value) {
+      return value in ['Disponibile', 'Forse', 'Assente'];
+    }
+
+    // Profili utente: tutti i loggati leggono (servono i nickname),
+    // ognuno scrive solo il proprio documento.
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+                            && request.auth.uid == userId
+                            && request.resource.data.nickname is string
+                            && request.resource.data.nickname.size() > 0
+                            && request.resource.data.nickname.size() <= 30;
+      allow delete: if false;
+    }
+
+    // Disponibilità: tutti i loggati leggono, ognuno modifica solo le proprie.
+    // Su update userId e date restano immutabili, così nessuno può
+    // "spostare" o riassegnare un evento altrui.
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.date is string
+                    && isValidEventType(request.resource.data.eventType);
+      allow update: if isSignedIn()
+                    && resource.data.userId == request.auth.uid
+                    && request.resource.data.userId == resource.data.userId
+                    && request.resource.data.date == resource.data.date;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Giorni sessione: tutti leggono, solo il Master scrive.
+    match /sessionDays/{date} {
+      allow read: if isSignedIn();
+      allow write: if isMaster();
+    }
+
+    // Elenco Master: ognuno può controllare solo il proprio stato.
+    // La scrittura avviene esclusivamente dalla console Firebase.
+    match /masters/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    // Vecchia password master in chiaro: accesso negato a chiunque.
+    match /settings/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Tutto il resto è chiuso.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
