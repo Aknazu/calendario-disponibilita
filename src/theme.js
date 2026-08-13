@@ -10,6 +10,8 @@ export const lightTheme = createTheme({
             paper: "#ffffff",
         },
         surfaceVariant: "#e1e2e8",
+        surfaceContainer: "#eef2fa",
+        surfaceContainerHigh: "#e3e8f5",
     },
     shape: {
         borderRadius: 16,
@@ -66,6 +68,45 @@ export const lightTheme = createTheme({
                     }
                 }
             }
+        },
+        MuiCard: {
+            styleOverrides: {
+                root: {
+                    borderRadius: 28, // M3 large-radius surface
+                    boxShadow: "0px 4px 24px rgba(11, 87, 208, 0.08)",
+                }
+            }
+        },
+        MuiChip: {
+            styleOverrides: {
+                root: {
+                    fontWeight: 500,
+                },
+                filled: {
+                    boxShadow: "none",
+                }
+            }
+        },
+        MuiToggleButtonGroup: {
+            styleOverrides: {
+                root: {
+                    borderRadius: 100,
+                    gap: 8,
+                }
+            }
+        },
+        MuiToggleButton: {
+            styleOverrides: {
+                root: {
+                    borderRadius: 100,
+                    textTransform: "none",
+                    fontWeight: 500,
+                    border: "1px solid #dadce0",
+                    '&.Mui-selected': {
+                        boxShadow: "none",
+                    }
+                }
+            }
         }
     },
 });
@@ -84,6 +125,8 @@ export const darkTheme = createTheme({
             secondary: "#c4c7c5",
         },
         surfaceVariant: "#444746",
+        surfaceContainer: "#1e2022",
+        surfaceContainerHigh: "#282a2c",
     },
     shape: {
         borderRadius: 16,
@@ -140,6 +183,48 @@ export const darkTheme = createTheme({
                 root: {
                     '& .MuiOutlinedInput-root': {
                         borderRadius: 16,
+                    }
+                }
+            }
+        },
+        MuiCard: {
+            styleOverrides: {
+                root: {
+                    borderRadius: 28,
+                    backgroundImage: "none",
+                    backgroundColor: "#1e2022",
+                    boxShadow: "0px 4px 24px rgba(0, 0, 0, 0.4)",
+                }
+            }
+        },
+        MuiChip: {
+            styleOverrides: {
+                root: {
+                    fontWeight: 500,
+                },
+                filled: {
+                    boxShadow: "none",
+                }
+            }
+        },
+        MuiToggleButtonGroup: {
+            styleOverrides: {
+                root: {
+                    borderRadius: 100,
+                    gap: 8,
+                }
+            }
+        },
+        MuiToggleButton: {
+            styleOverrides: {
+                root: {
+                    borderRadius: 100,
+                    textTransform: "none",
+                    fontWeight: 500,
+                    border: "1px solid #444746",
+                    color: "#e3e3e3",
+                    '&.Mui-selected': {
+                        boxShadow: "none",
                     }
                 }
             }

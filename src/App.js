@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Calendar from "./components/Calendar";
 import Auth from "./components/Auth";
-import { CssBaseline, ThemeProvider, Container, Typography, AppBar, Toolbar, Button, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Box, TextField, Snackbar, Alert, Menu, MenuItem, ListItemIcon, ListItemText, Divider, CircularProgress, Tooltip } from "@mui/material";
+import { CssBaseline, ThemeProvider, Container, Typography, AppBar, Toolbar, Button, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, Box, TextField, Snackbar, Alert, Menu, MenuItem, ListItemIcon, ListItemText, Divider, CircularProgress, Tooltip, Avatar } from "@mui/material";
 import LogoutIcon from '@mui/icons-material/Logout';
 import StarIcon from '@mui/icons-material/Star';
-import MenuIcon from '@mui/icons-material/Menu';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import EditIcon from '@mui/icons-material/Edit';
@@ -142,9 +141,13 @@ function App() {
             <Box sx={{ p: { xs: 0, sm: 2 }, pb: { xs: 0, sm: 0 } }}>
                 <AppBar position="static" elevation={2} style={{ borderRadius: "20px" }}>
                     <Toolbar sx={{ flexWrap: "wrap", justifyContent: "space-between", py: { xs: 1, sm: 0 } }}>
-                        <Box display="flex" alignItems="center" sx={{ flexGrow: { xs: 0, sm: 1 } }}>
-                            <img src={process.env.PUBLIC_URL + '/logo512.png'} alt="Logo" style={{ width: '40px', height: '40px', marginRight: '10px', borderRadius: '8px' }} />
-                            <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+                        <Box display="flex" alignItems="center" gap={1.5} sx={{ flexGrow: { xs: 0, sm: 1 } }}>
+                            <img
+                                src={process.env.PUBLIC_URL + '/logo512.png'}
+                                alt="Logo"
+                                style={{ width: 40, height: 40, borderRadius: 10, boxShadow: "0px 1px 4px rgba(0,0,0,0.2)" }}
+                            />
+                            <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' }, fontWeight: 500 }}>
                                 Calendario Disponibilità
                             </Typography>
                         </Box>
@@ -152,13 +155,15 @@ function App() {
                             <Box display="flex" alignItems="center" flexWrap="nowrap" justifyContent="flex-end" gap={1}>
                                 {isMaster && (
                                     <Tooltip title="Master Mode Attiva">
-                                        <Box display="flex" alignItems="center" bgcolor="#FFF8E1" borderRadius="50%" p={0.5} sx={{ mr: 1, cursor: "help" }}>
+                                        <Box display="flex" alignItems="center" bgcolor="#FFF8E1" borderRadius="50%" p={0.5} sx={{ mr: 0.5, cursor: "help", boxShadow: "0px 1px 3px rgba(0,0,0,0.15)" }}>
                                             <StarIcon sx={{ color: '#F4B400', fontSize: '1.2rem' }} />
                                         </Box>
                                     </Tooltip>
                                 )}
-                                <IconButton color="inherit" onClick={handleMenuOpen} edge="end" sx={{ ml: 1 }}>
-                                    <MenuIcon />
+                                <IconButton onClick={handleMenuOpen} edge="end" sx={{ ml: 0.5, p: 0.5 }}>
+                                    <Avatar sx={{ width: 34, height: 34, bgcolor: "primary.container", color: "primary.main", fontSize: "0.95rem", fontWeight: 600 }}>
+                                        {(user.nickname || "?").charAt(0).toUpperCase()}
+                                    </Avatar>
                                 </IconButton>
 
                                 <Menu
@@ -237,8 +242,9 @@ function App() {
             <Dialog
                 open={showNicknameDialog}
                 onClose={() => !isSavingNickname && user && user.nickname !== "Anonimo" && setShowNicknameDialog(false)}
+                PaperProps={{ sx: { width: "100%", maxWidth: 400 } }}
             >
-                <DialogTitle>Imposta il tuo Nickname</DialogTitle>
+                <DialogTitle sx={{ fontWeight: 500 }}>Imposta il tuo Nickname</DialogTitle>
                 <DialogContent>
                     <TextField
                         label="Nickname"
@@ -276,12 +282,16 @@ function App() {
                 </Alert>
             </Snackbar>
 
-            <Dialog open={showLogoutDialog} onClose={() => setShowLogoutDialog(false)}>
-                <DialogTitle>Conferma Logout</DialogTitle>
-                <DialogContent>Sei sicuro di voler effettuare il logout?</DialogContent>
+            <Dialog open={showLogoutDialog} onClose={() => setShowLogoutDialog(false)} PaperProps={{ sx: { width: "100%", maxWidth: 380 } }}>
+                <DialogTitle sx={{ fontWeight: 500 }}>Conferma Logout</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary">
+                        Sei sicuro di voler effettuare il logout?
+                    </Typography>
+                </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setShowLogoutDialog(false)} color="inherit">Annulla</Button>
-                    <Button onClick={handleLogout} color="primary">Logout</Button>
+                    <Button onClick={handleLogout} color="error" variant="contained">Logout</Button>
                 </DialogActions>
             </Dialog>
         </ThemeProvider>
