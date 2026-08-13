@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { TextField, Button, Box, Typography } from "@mui/material";
+import { TextField, Button, Box, Card, Typography, Divider } from "@mui/material";
 import GoogleIcon from "@mui/icons-material/Google";
 import { auth } from "../firebaseConfig";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
@@ -62,66 +62,89 @@ const Auth = ({ showMessage }) => {
     };
 
     return (
-        <div style={{ textAlign: "center" }}>
-            <Typography variant="h6">Effettua il login</Typography>
-            <TextField
-                label="Email"
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-            />
-            <TextField
-                label="Password"
-                variant="outlined"
-                fullWidth
-                margin="normal"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-            />
-            {isRegistering && (
+        <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            minHeight="calc(100vh - 96px)"
+            px={2}
+        >
+            <Card sx={{ width: "100%", maxWidth: 420, p: { xs: 3, sm: 4 } }}>
+                <Box display="flex" flexDirection="column" alignItems="center" mb={3}>
+                    <img
+                        src={process.env.PUBLIC_URL + '/logo512.png'}
+                        alt="Logo"
+                        style={{ width: 56, height: 56, borderRadius: 12, marginBottom: 16 }}
+                    />
+                    <Typography variant="h5" fontWeight={500} textAlign="center">
+                        {isRegistering ? "Crea il tuo account" : "Bentornato"}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" textAlign="center" mt={0.5}>
+                        {isRegistering
+                            ? "Registrati per segnare le tue disponibilità"
+                            : "Accedi per gestire le tue disponibilità"}
+                    </Typography>
+                </Box>
+
                 <TextField
-                    label="Nickname"
+                    label="Email"
                     variant="outlined"
                     fullWidth
                     margin="normal"
-                    value={nickname}
-                    onChange={(e) => setNickname(e.target.value)}
-                    inputProps={{ maxLength: NICKNAME_MAX_LENGTH }}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                 />
-            )}
-            <Box display="flex" justifyContent="space-between" mt={2}>
+                <TextField
+                    label="Password"
+                    variant="outlined"
+                    fullWidth
+                    margin="normal"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                />
+                {isRegistering && (
+                    <TextField
+                        label="Nickname"
+                        variant="outlined"
+                        fullWidth
+                        margin="normal"
+                        value={nickname}
+                        onChange={(e) => setNickname(e.target.value)}
+                        inputProps={{ maxLength: NICKNAME_MAX_LENGTH }}
+                    />
+                )}
+
                 {isRegistering ? (
-                    <Button variant="contained" color="primary" fullWidth onClick={handleRegister}>
+                    <Button variant="contained" color="primary" fullWidth size="large" onClick={handleRegister} sx={{ mt: 2 }}>
                         Registrati
                     </Button>
                 ) : (
-                    <Button variant="contained" color="primary" fullWidth onClick={handleLogin}>
+                    <Button variant="contained" color="primary" fullWidth size="large" onClick={handleLogin} sx={{ mt: 2 }}>
                         Login
                     </Button>
                 )}
+
+                <Divider sx={{ my: 3 }}>
+                    <Typography variant="caption" color="text.secondary">oppure</Typography>
+                </Divider>
+
                 <Button
                     variant="outlined"
+                    color="inherit"
                     fullWidth
+                    size="large"
                     onClick={handleGoogleLogin}
                     startIcon={<GoogleIcon />}
-                    style={{
-                        backgroundColor: "white",
-                        borderColor: "black",
-                        color: "black",
-                        textTransform: "none",
-                        marginLeft: "10px"
-                    }}
                 >
                     Accedi tramite Google
                 </Button>
-            </Box>
-            <Button color="secondary" fullWidth onClick={() => setIsRegistering(!isRegistering)}>
-                {isRegistering ? "Hai già un account? Accedi" : "Non hai un account? Registrati"}
-            </Button>
-        </div>
+
+                <Button color="secondary" fullWidth onClick={() => setIsRegistering(!isRegistering)} sx={{ mt: 2 }}>
+                    {isRegistering ? "Hai già un account? Accedi" : "Non hai un account? Registrati"}
+                </Button>
+            </Card>
+        </Box>
     );
 };
 

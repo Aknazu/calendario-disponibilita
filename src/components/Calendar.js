@@ -12,7 +12,7 @@ import {
     EVENT_TYPES
 } from "../firestoreService";
 import { sendTelegramGroupMessage, sendTelegramFivePlayersMessage, sendTelegramStatusChangeMessage } from "../telegramService";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Select, MenuItem, FormControl, InputLabel, Box, Typography, Divider, IconButton, Tooltip, CircularProgress } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, Divider, IconButton, Tooltip, CircularProgress, Chip, ToggleButtonGroup, ToggleButton } from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
@@ -394,23 +394,11 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
 
     return (
         <div {...handlers} onTouchCancel={handleTouchCancel} style={{ overflow: "hidden" }}>
-            <Box display="flex" flexDirection={{ xs: 'column', md: 'row' }} justifyContent="center" alignItems="center" mb={2} mt={1} gap={2}>
+            <Box display="flex" justifyContent="center" mb={2} mt={1} gap={1} flexWrap="wrap">
                 {/* Legenda Colori */}
-                <Box display="flex" gap={2} flexWrap="wrap" justifyContent="center">
-                    <Box display="flex" alignItems="center" gap={1}>
-                        <Box width={14} height={14} bgcolor={COLORS.Disponibile} borderRadius="50%" />
-                        <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>Disponibile</Typography>
-                    </Box>
-                    <Box display="flex" alignItems="center" gap={1}>
-                        <Box width={14} height={14} bgcolor={COLORS.Forse} borderRadius="50%" />
-                        <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>Forse</Typography>
-                    </Box>
-                    <Box display="flex" alignItems="center" gap={1}>
-                        <Box width={14} height={14} bgcolor={COLORS.Assente} borderRadius="50%" />
-                        <Typography variant="body2" sx={{ whiteSpace: 'nowrap' }}>Assente</Typography>
-                    </Box>
-                </Box>
-
+                <Chip size="small" label="Disponibile" sx={{ bgcolor: COLORS.Disponibile, color: '#fff', fontWeight: 500 }} />
+                <Chip size="small" label="Forse" sx={{ bgcolor: COLORS.Forse, color: '#fff', fontWeight: 500 }} />
+                <Chip size="small" label="Assente" sx={{ bgcolor: COLORS.Assente, color: '#fff', fontWeight: 500 }} />
             </Box>
             <div
                 style={{
@@ -456,20 +444,31 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                     }
                 </DialogTitle>
                 <DialogContent>
-                    <FormControl fullWidth margin="normal">
-                        <InputLabel id="event-type-label">Tipo di Evento</InputLabel>
-                        <Select
-                            labelId="event-type-label"
-                            label="Tipo di Evento"
-                            variant="outlined"
-                            value={eventType}
-                            onChange={(e) => setEventType(e.target.value)}
-                        >
-                            {EVENT_TYPES.map(type => (
-                                <MenuItem key={type} value={type}>{type}</MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                        Tipo di Evento
+                    </Typography>
+                    <ToggleButtonGroup
+                        exclusive
+                        fullWidth
+                        value={eventType}
+                        onChange={(e, newValue) => newValue && setEventType(newValue)}
+                        sx={{ mb: 1 }}
+                    >
+                        {EVENT_TYPES.map(type => (
+                            <ToggleButton
+                                key={type}
+                                value={type}
+                                sx={{
+                                    '&.Mui-selected, &.Mui-selected:hover': {
+                                        bgcolor: colorForType(type),
+                                        color: '#fff',
+                                    }
+                                }}
+                            >
+                                {type}
+                            </ToggleButton>
+                        ))}
+                    </ToggleButtonGroup>
                     {existingEvent && (
                         <Button onClick={handleDeleteEvent} color="error" disabled={isSaving} sx={{ mt: 1 }}>
                             Elimina Evento
@@ -541,7 +540,8 @@ const Calendar = ({ user, darkMode, setDarkMode, showMessage, isMaster }) => {
                                 color: 'white',
                                 width: { xs: 56, sm: 64 },
                                 height: { xs: 56, sm: 64 },
-                                '&:hover': { bgcolor: 'primary.dark' },
+                                transition: 'transform 0.15s ease, background-color 0.15s ease',
+                                '&:hover': { bgcolor: 'primary.dark', transform: 'scale(1.05)' },
                                 boxShadow: 3
                             }}
                         >
