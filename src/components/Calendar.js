@@ -25,7 +25,9 @@ import { useSwipeable } from 'react-swipeable';
 // sia per il pulsante "Aggiungi a Google Calendar")
 const SESSION_START_TIME = "210000";
 const SESSION_END_TIME = "233000";
-const SESSION_TITLE = "Sessione D&D";
+// Niente "&" nel titolo: su mobile il link passa per una decodifica in più e "&"
+// diventa un separatore di parametri, troncando il titolo a "Sessione D".
+const SESSION_TITLE = "Sessione DnD";
 
 // Soglia oltre la quale scatta la notifica "gruppo al completo"
 const FULL_PARTY_SIZE = 5;
